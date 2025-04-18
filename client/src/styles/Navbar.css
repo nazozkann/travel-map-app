@@ -1,0 +1,16 @@
+.nav-style {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background-color: #f2f2f2;
+  border-bottom: 1px solid #ccc;
+}
+.nav-logo-link {
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-weight: 600;
+}
+.nav-rigth {
+  display: flex;
+  flex-direction: row;
+  align-items: space-between;
+}
