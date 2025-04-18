@@ -12,6 +12,9 @@ app.use(express.json());
 const authRoutes = require("./routes/auth");
 app.use("/api/auth", authRoutes);
 
+const pinRoutes = require("./routes/pins");
+app.use("/api/pins", pinRoutes);
+
 app.get("/test", (req, res) => {
   res.send("Direct test route");
 });
