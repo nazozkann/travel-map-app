@@ -12,3 +12,124 @@
   left: 20;
   z-index: 999;
 }
+.pin-popup {
+  background-color: white;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+.pin-popup h2 {
+  color: black;
+  font-size: 18px;
+}
+.pin-popup p {
+  color: black;
+  font-size: 10px;
+}
+.pin-popup span {
+  color: black;
+  font-size: 10px;
+}
+.pin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 200px;
+}
+.custom-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.category-filter {
+  display: flex;
+  gap: 1rem;
+  padding: 12px;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+}
+
+.category-btn {
+  width: 1rem;
+  height: 1.5rem;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-items: center;
+  justify-content: center;
+  background-color: #eaeaea66;
+  transform: scale(1.1);
+}
+
+.category-icon {
+  color: rgba(255, 255, 255, 0.841);
+  align-items: center;
+  justify-content: center;
+  margin-left: -0.5rem;
+  margin-top: -0.25rem;
+}
+.category-btn-food-drink.active {
+  background-color: #ff8c00;
+}
+.category-btn-cultural.active {
+  background-color: #8e44ad;
+}
+.category-btn-accommodation.active {
+  background-color: #2980b9;
+}
+.category-btn-entertainment.active {
+  background-color: #e74c3c;
+}
+.category-btn-nature.active {
+  background-color: #27ae60;
+}
+.category-btn-other.active {
+  background-color: #666;
+}
+
+.places-container {
+  padding: 2rem;
+}
+.places-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.places-card {
+  padding: 1rem;
+  border: none;
+  border-radius: 8px;
+  text-decoration: none;
+  color: black;
+  background-color: #f9f9f9;
+}
+
+.add-pin-button {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: #1e1e1e;
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 1);
+  z-index: 1000;
+  transition: 0.2s;
+}
+
+.add-pin-button:hover {
+  background: #333;
+}

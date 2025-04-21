@@ -6,7 +6,6 @@ const jwt = require("jsonwebtoken");
 const verifyToken = require("../middleware/verifyToken");
 
 router.post("/register", async (req, res) => {
-  console.log("➡️ /register endpoint hit");
   try {
     const { username, email, password } = req.body;
 
@@ -29,7 +28,6 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  console.log("➡️ /login endpoint hit");
   try {
     const { email, password } = req.body;
 
@@ -61,11 +59,6 @@ router.post("/login", async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Error while logging in" });
   }
-});
-
-router.get("/ping", (req, res) => {
-  console.log("✅ /ping endpoint hit");
-  res.json({ message: "Ping successful!" });
 });
 
 router.get("/protected", verifyToken, (req, res) => {

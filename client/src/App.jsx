@@ -5,6 +5,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import BestPlaces from "./pages/BestPlaces";
 import Navbar from "./components/Navbar";
+import PinDetail from "./pages/PinDetail";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/auth" element={<Auth />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/places" element={<BestPlaces />} />
+        <Route path="/places/:id" element={<PinDetail />} />
       </Routes>
     </Router>
   );
