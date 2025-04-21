@@ -2,12 +2,14 @@ const mongoose = require("mongoose");
 
 const PinSchema = new mongoose.Schema(
   {
-    title: String,
+    title: { type: String, required: true },
+    category: { type: String, required: true },
     description: String,
-    category: String,
-    latitude: Number,
-    longitude: Number,
-    createdBy: String,
+    latitude: { type: Number, required: true },
+    longitude: { type: Number, required: true },
+    createdBy: { type: String, default: "anonim" },
+    likes: { type: Number, default: 0 },
+    dislikes: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

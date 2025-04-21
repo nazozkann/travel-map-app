@@ -15,6 +15,9 @@ app.use("/api/auth", authRoutes);
 const pinRoutes = require("./routes/pins");
 app.use("/api/pins", pinRoutes);
 
+const commentRoutes = require("./routes/comments");
+app.use("/api/comments", commentRoutes);
+
 app.get("/test", (req, res) => {
   res.send("Direct test route");
 });
