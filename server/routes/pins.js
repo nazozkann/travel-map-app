@@ -23,30 +23,55 @@ router.get("/", async (req, res) => {
 });
 
 router.put("/:id/like", async (req, res) => {
-  try {
-    const pin = await Pin.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { likes: 1 } },
-      { new: true }
-    );
+  const { username } = req.body;
 
-    res.status(200).json(pin);
+  try {
+    const pin = await Pin.findById(req.params.id);
+
+    if (!pin) return res.status(404).json({ message: "Pin not found" });
+
+    if (pin.likedBy.includes(username)) {
+      return res.status(200).json({ message: "Already liked" });
+    }
+    if (pin.dislikedBy.includes(username)) {
+      pin.dislikes -= 1;
+      pin.dislikedBy = pin.dislikedBy.filter((u) => u !== username);
+    }
+
+    pin.likes += 1;
+    pin.likedBy.push(username);
+
+    const updated = await pin.save();
+    res.status(200).json(updated);
   } catch (err) {
-    res.status(500).json({ message: "Error while liking pin" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
 router.put("/:id/dislike", async (req, res) => {
+  const { username } = req.body;
+
   try {
-    const pin = await Pin.findByIdAndUpdate(
-      req.params.id,
-      { $inc: { dislikes: 1 } },
-      { new: true }
-    );
-    res.status(200).json(pin);
+    const pin = await Pin.findById(req.params.id);
+
+    if (!pin) return res.status(404).json({ message: "Pin not found" });
+
+    if (pin.dislikedBy.includes(username)) {
+      return res.status(200).json({ message: "Already disliked" });
+    }
+
+    if (pin.likedBy.includes(username)) {
+      pin.likes -= 1;
+      pin.likedBy = pin.likedBy.filter((u) => u !== username);
+    }
+
+    pin.dislikes += 1;
+    pin.dislikedBy.push(username);
+
+    const updated = await pin.save();
+    res.status(200).json(updated);
   } catch (err) {
-    console.log("🚨 Like işlemi hatası:", err);
-    res.status(500).json({ message: "Error while liking pin" });
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -56,6 +81,47 @@ router.get("/:id", async (req, res) => {
     return res.status(200).json(pin);
   } catch (err) {
     res.status(500).json({ message: "Error while fetching pin" });
+  }
+});
+
+router.delete("/:id", async (req, res) => {
+  const { username } = req.body;
+  try {
+    const pin = await Pin.findById(req.params.id);
+
+    if (!pin) return res.status(404).json({ message: "Pin not found" });
+
+    if (pin.createdBy !== username) {
+      return res
+        .status(403)
+        .json({ message: "You can only delete your own pins" });
+    }
+    await pin.deleteOne();
+    return res.status(200).json({ message: "Pin deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error while deleting pin" });
+  }
+});
+router.put("/:id", async (req, res) => {
+  const { username, title, description, category } = req.body;
+
+  try {
+    const pin = await Pin.findById(req.params.id);
+
+    if (!pin) return res.status(404).json({ message: "Pin not found" });
+
+    if (pin.createdBy !== username) {
+      return res
+        .status(403)
+        .json({ message: "You can only update your own pins" });
+    }
+    pin.title = title || pin.title;
+    pin.description = description || pin.description;
+    pin.category = category || pin.category;
+    const updated = await pin.save();
+    return res.status(200).json(updated);
+  } catch (err) {
+    res.status(500).json({ message: "Error while updating pin" });
   }
 });
 

@@ -1,5 +1,3 @@
-import { ThumbsUp, ThumbsDown } from "lucide-react";
-
 export default function PopUp({
   title,
   category,

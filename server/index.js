@@ -18,6 +18,12 @@ app.use("/api/pins", pinRoutes);
 const commentRoutes = require("./routes/comments");
 app.use("/api/comments", commentRoutes);
 
+const userRoutes = require("./routes/users");
+app.use("/api/users", userRoutes);
+
+const listRoutes = require("./routes/lists");
+app.use("/api/lists", listRoutes);
+
 app.get("/test", (req, res) => {
   res.send("Direct test route");
 });
