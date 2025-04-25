@@ -6,6 +6,7 @@ import Profile from "./pages/Profile";
 import BestPlaces from "./pages/BestPlaces";
 import Navbar from "./components/Navbar";
 import PinDetail from "./pages/PinDetail";
+import ListDetail from "./pages/ListDetail";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/places" element={<BestPlaces />} />
         <Route path="/places/:id" element={<PinDetail />} />
+        <Route path="/lists/:listId" element={<ListDetail />} />
       </Routes>
     </Router>
   );

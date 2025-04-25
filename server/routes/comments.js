@@ -23,4 +23,23 @@ router.get("/:pinId", async (req, res) => {
   }
 });
 
+router.delete("/:id", async (req, res) => {
+  const { username } = req.body;
+  try {
+    const comment = await Comment.findById(req.params.id);
+    if (!comment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+    if (comment.username !== username) {
+      return res
+        .status(403)
+        .json({ message: "You can only delete your own comments" });
+    }
+    await comment.deleteOne();
+    res.status(200).json({ message: "Comment deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Error while deleting comment" });
+  }
+});
+
 module.exports = router;
