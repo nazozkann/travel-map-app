@@ -1,11 +1,42 @@
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import DetailMap from "../components/DetailMap";
+import { useNavigate } from "react-router-dom";
 
 export default function PinDetail() {
+  const navigate = useNavigate();
   const { id } = useParams();
   const [pin, setPin] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    category: "",
+    description: "",
+  });
+  const [lists, setLists] = useState([]);
+  const [selectedListId, setSelectedListId] = useState("");
+  const [newListName, setNewListName] = useState("");
+
+  useEffect(() => {
+    const username = localStorage.getItem("username");
+    if (username) {
+      fetch(`http://localhost:8000/api/lists/${username}`)
+        .then((res) => res.json())
+        .then((data) => setLists(data));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (pin) {
+      setEditForm({
+        title: pin.title,
+        category: pin.category,
+        description: pin.description,
+      });
+    }
+  }, [pin]);
 
   useEffect(() => {
     fetch(`http://localhost:8000/api/pins/${id}`)
