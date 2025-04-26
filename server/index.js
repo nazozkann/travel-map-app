@@ -2,13 +2,31 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const path = require("path");
 
 dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
 
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/api/pins")) {
+    next();
+  } else {
+    express.json({ limit: "10mb", type: "application/json" })(
+      req,
+      res,
+      (err) => {
+        if (err) {
+          return res.status(400).send("Invalid JSON");
+        }
+        express.urlencoded({ extended: true, limit: "10mb" })(req, res, next);
+      }
+    );
+  }
+});
 const authRoutes = require("./routes/auth");
 app.use("/api/auth", authRoutes);
 

@@ -45,6 +45,7 @@ export default function MapView({ selectedLocation }) {
               description={pin.description}
               likes={pin.likes}
               dislikes={pin.dislikes}
+              imageUrl={pin.imageUrl}
             />
           );
 
@@ -95,21 +96,16 @@ export default function MapView({ selectedLocation }) {
           ev.preventDefault();
 
           const username = localStorage.getItem("username") || "anonim";
+          const formData = new FormData(ev.target);
 
-          const body = {
-            title: form.title.value,
-            category: form.category.value,
-            description: form.description.value,
-            latitude: lat,
-            longitude: lng,
-            createdBy: username,
-          };
+          formData.append("latitude", lat.toString());
+          formData.append("longitude", lng.toString());
+          formData.append("createdBy", username);
 
           try {
             const res = await fetch("http://localhost:8000/api/pins", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(body),
+              body: formData,
             });
             const newPin = await res.json();
 
