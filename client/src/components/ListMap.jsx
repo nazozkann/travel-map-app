@@ -1,14 +1,20 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { renderToString } from "react-dom/server";
 import PopUp from "./PopUp";
 import getMarkerElement from "../utils/getMarkerElement";
 import { useNavigate } from "react-router-dom";
+import CategoryFilter from "./CategoryFilter";
+import { categories } from "../utils/categories";
 
 export default function ListMap({ pins }) {
   const mapRef = useRef(null);
   const navigate = useNavigate();
+  const [map, setMap] = useState(null);
+  const [selectedCategories, setSelectedCategories] = useState(
+    categories.map((cat) => cat.key)
+  );
 
   useEffect(() => {
     if (!pins || pins.length === 0) return;
@@ -22,7 +28,20 @@ export default function ListMap({ pins }) {
       zoom: 5,
     });
 
+    setMap(instance);
+
+    return () => instance.remove();
+  }, [pins]);
+
+  useEffect(() => {
+    if (!map || !pins) return;
+
+    // Tüm mevcut marker'ları temizle
+    const markers = [];
+
     pins.forEach((pin) => {
+      if (!selectedCategories.includes(pin.category)) return;
+
       const el = getMarkerElement(pin.category);
 
       const popupHtml = renderToString(
@@ -39,13 +58,13 @@ export default function ListMap({ pins }) {
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([pin.longitude, pin.latitude])
-        .addTo(instance);
+        .addTo(map);
 
       marker.getElement().addEventListener("mouseenter", () => {
         new maplibregl.Popup({ offset: 25, closeButton: false })
           .setLngLat([pin.longitude, pin.latitude])
           .setHTML(popupHtml)
-          .addTo(instance);
+          .addTo(map);
       });
 
       marker.getElement().addEventListener("mouseleave", () => {
@@ -56,12 +75,24 @@ export default function ListMap({ pins }) {
       marker.getElement().addEventListener("click", () => {
         navigate(`/places/${pin._id}`);
       });
+
+      markers.push(marker);
     });
 
-    return () => instance.remove();
-  }, [pins]);
+    // Cleanup
+    return () => {
+      markers.forEach((m) => m.remove());
+    };
+  }, [map, pins, selectedCategories]);
 
   return (
-    <div ref={mapRef} className="map-container" style={{ height: "400px" }} />
+    <div>
+      <div ref={mapRef} className="map-container">
+        <CategoryFilter
+          selectedCategories={selectedCategories}
+          setSelectedCategories={setSelectedCategories}
+        />
+      </div>
+    </div>
   );
 }

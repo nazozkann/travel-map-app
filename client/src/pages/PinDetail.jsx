@@ -228,10 +228,21 @@ export default function PinDetail() {
             onSubmit={async (e) => {
               e.preventDefault();
               const username = localStorage.getItem("username");
+
+              const formData = new FormData();
+              formData.append("username", username);
+              formData.append("title", editForm.title);
+              formData.append("category", editForm.category);
+              formData.append("description", editForm.description);
+
+              const fileInput = e.target.elements.image;
+              if (fileInput && fileInput.files.length > 0) {
+                formData.append("image", fileInput.files[0]);
+              }
+
               const res = await fetch(`http://localhost:8000/api/pins/${id}`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, ...editForm }),
+                body: formData,
               });
               const updated = await res.json();
               setPin(updated);
@@ -256,11 +267,35 @@ export default function PinDetail() {
                 setEditForm({ ...editForm, description: e.target.value })
               }
             ></textarea>
+            <input type="file" name="image" accept="image/*" />
             <button type="submit">Save</button>
           </form>
         )}
       </div>
       <h2>{pin.title}</h2>
+      {pin.imageUrl && (
+        <div
+          style={{
+            width: "100px",
+            height: "100px",
+            overflow: "hidden",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <img
+            src={pin.imageUrl}
+            alt="Pin visual"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              objectPosition: "center",
+            }}
+          />
+        </div>
+      )}
       <p>
         <strong>Category:</strong> {pin.category}
       </p>

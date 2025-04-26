@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import ListMap from "../components/ListMap";
 import { useRef } from "react";
+import { categories } from "../utils/categories";
+import CategoryFilter from "../components/CategoryFilter";
 
 export default function ListDetail() {
   const navigate = useNavigate();
@@ -9,6 +11,9 @@ export default function ListDetail() {
   const [list, setList] = useState(null);
   const [searchParams] = useSearchParams();
   const addedRef = useRef(false);
+  const [selectedCategories, setSelectedCategories] = useState(
+    categories.map((cat) => cat.key)
+  );
 
   useEffect(() => {
     fetch(`http://localhost:8000/api/lists/id/${listId}`)
@@ -38,6 +43,9 @@ export default function ListDetail() {
   if (!list) return <p>Loading list...</p>;
 
   const validPins = Array.isArray(list.pins) ? list.pins.filter(Boolean) : [];
+  const filteredPins = validPins.filter((pin) =>
+    selectedCategories.includes(pin.category)
+  );
 
   async function handleRemovePin(pinId) {
     const username = localStorage.getItem("username");
@@ -61,10 +69,10 @@ export default function ListDetail() {
 
       {validPins.length > 0 ? (
         <>
-          <ListMap pins={validPins} />
+          <ListMap pins={filteredPins} />
 
           <ul>
-            {validPins.map((pin) => (
+            {filteredPins.map((pin) => (
               <li
                 key={pin._id}
                 style={{
@@ -79,7 +87,7 @@ export default function ListDetail() {
                 {localStorage.getItem("username") === list.createdBy && (
                   <button
                     onClick={(e) => {
-                      e.stopPropagation(); // detay sayfasına yönlenmeyi engelle
+                      e.stopPropagation();
                       handleRemovePin(pin._id);
                     }}
                     style={{ marginLeft: "1rem", color: "red" }}
