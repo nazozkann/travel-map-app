@@ -15,7 +15,7 @@ export default function CategoryFilter({
 
   return (
     <div className="category-filter">
-      {categories.map(({ key, icon: Icon }) => (
+      {categories.map(({ key, icon }) => (
         <button
           key={key}
           className={`category-btn-${key} category-btn ${
@@ -23,7 +23,14 @@ export default function CategoryFilter({
           }`}
           onClick={() => toggleCategory(key)}
         >
-          <Icon className="category-icon" size={16} />
+          <img
+            src={`/assets/icons/${icon.displayName}.svg`}
+            alt={icon.displayName}
+            style={{
+              width: "1.85rem",
+              height: "1.85rem",
+            }}
+          />
         </button>
       ))}
     </div>

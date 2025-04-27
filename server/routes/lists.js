@@ -87,4 +87,38 @@ router.put("/:listId/remove-pin", async (req, res) => {
   }
 });
 
+// 📍 List update (name + description değiştirme)
+router.put("/:listId", async (req, res) => {
+  try {
+    const { name, description, username } = req.body;
+
+    const list = await List.findById(req.params.listId);
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    if (list.createdBy !== username) {
+      return res.status(403).json({ message: "Only the list owner can edit." });
+    }
+
+    list.name = name || list.name;
+    list.description = description || list.description;
+
+    const updated = await list.save();
+    res.status(200).json(updated);
+  } catch (err) {
+    console.error("Couldn't update list:", err);
+    res.status(500).json({ message: "Couldn't update list" });
+  }
+});
+
+router.get("/share/:listId", async (req, res) => {
+  try {
+    const list = await List.findById(req.params.listId).populate("pins");
+    if (!list) return res.status(404).json({ message: "List not found" });
+    res.status(200).json(list);
+  } catch (err) {
+    console.error("Error fetching shared list:", err);
+    res.status(500).json({ message: "Error fetching shared list" });
+  }
+});
+
 module.exports = router;

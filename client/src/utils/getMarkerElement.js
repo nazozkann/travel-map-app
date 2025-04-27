@@ -6,23 +6,23 @@ export default function getMarkerElement(category) {
 
   switch (category) {
     case "food-drink":
-      el.style.backgroundColor = "#ff8c00";
+      el.style.backgroundColor = "#f59d6b";
       break;
     case "cultural":
-      el.style.backgroundColor = "#8e44ad";
+      el.style.backgroundColor = "#7db8c5";
       break;
     case "accommodation":
-      el.style.backgroundColor = "#2980b9";
+      el.style.backgroundColor = "#a6c9cd";
       break;
     case "entertainment":
-      el.style.backgroundColor = "#e74c3c";
+      el.style.backgroundColor = "#f26f5b";
       break;
     case "nature":
-      el.style.backgroundColor = "#27ae60";
+      el.style.backgroundColor = "#92b883";
       break;
     case "other":
     default:
-      el.style.backgroundColor = "#666";
+      el.style.backgroundColor = "#d2b5c2";
   }
 
   return el;

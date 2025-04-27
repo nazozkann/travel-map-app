@@ -7,18 +7,21 @@ import BestPlaces from "./pages/BestPlaces";
 import Navbar from "./components/Navbar";
 import PinDetail from "./pages/PinDetail";
 import ListDetail from "./pages/ListDetail";
+import { useState } from "react";
 
 function App() {
+  const [location, setLocation] = useState(null);
   return (
     <Router>
-      <Navbar />
+      <Navbar setLocation={setLocation} />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<Home location={location} />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/places" element={<BestPlaces />} />
         <Route path="/places/:id" element={<PinDetail />} />
         <Route path="/lists/:listId" element={<ListDetail />} />
+        <Route path="/share/:listId" element={<ListDetail />} />
       </Routes>
     </Router>
   );

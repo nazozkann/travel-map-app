@@ -1,16 +1,32 @@
+:root {
+  --background-top: #f8e0c8;
+  --background-bottom: #c9e3c7;
+  --entertainment-color: #f26f5b;
+  --nature-color: #92b883;
+  --cultural-color: #7db8c5;
+  --food-color: #f59d6b;
+  --others-color: #d2b5c2;
+  --hotels-color: #a6c9cd;
+  --card-background: #fff9f4;
+}
+body {
+  overflow: auto;
+}
+
+.home-container {
+  overflow-y: hidden;
+}
+
 .map-container {
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - 5rem);
 }
 .map {
   width: 100%;
   height: 100%;
 }
 .search-bar {
-  position: absolute;
-  top: 20;
-  left: 20;
-  z-index: 999;
+  z-index: 1;
 }
 .pin-popup {
   background-color: white;
@@ -49,54 +65,50 @@
 
 .category-filter {
   display: flex;
-  gap: 1rem;
-  padding: 12px;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
   position: absolute;
-  top: 10px;
-  right: 10px;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 10;
-
   border-radius: 12px;
+  background-color: #f8eee357;
   backdrop-filter: blur(6px);
 }
 
 .category-btn {
-  width: 1rem;
-  height: 1.5rem;
+  width: 3rem;
+  height: 3rem;
   border: none;
   border-radius: 50%;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #eaeaea66;
   transform: scale(1.1);
+  background-color: rgba(40, 39, 39, 0.236);
 }
 
-.category-icon {
-  color: rgba(255, 255, 255, 0.841);
-  align-items: center;
-  justify-content: center;
-  margin-left: -0.5rem;
-  margin-top: -0.25rem;
-}
 .category-btn-food-drink.active {
-  background-color: #ff8c00;
+  background-color: #f59d6b;
 }
 .category-btn-cultural.active {
-  background-color: #8e44ad;
+  background-color: #7db8c5;
 }
 .category-btn-accommodation.active {
-  background-color: #2980b9;
+  background-color: #a6c9cd;
 }
 .category-btn-entertainment.active {
-  background-color: #e74c3c;
+  background-color: #f26f5b;
 }
 .category-btn-nature.active {
-  background-color: #27ae60;
+  background-color: #92b883;
 }
 .category-btn-other.active {
-  background-color: #666;
+  background-color: #d2b5c2;
 }
 
 .places-container {
@@ -132,43 +144,4 @@
 
 .add-pin-button:hover {
   background: #333;
-}
-
-.search-box {
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 1000;
-  background: white;
-  padding: 8px;
-  border-radius: 6px;
-  width: 250px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.search-box input {
-  width: 100%;
-  padding: 6px;
-}
-
-.suggestions {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  max-height: 160px;
-  overflow-y: auto;
-}
-
-.suggestions li {
-  padding: 6px;
-  cursor: pointer;
-}
-
-.suggestions li:hover {
-  background: #f0f0f0;
-}
-
-.suggestions li.highlighted {
-  background-color: #f0f0f0;
-  font-weight: bold;
 }
