@@ -20,6 +20,18 @@ export default function MapView({ selectedLocation }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (map && selectedLocation) {
+      map.flyTo({
+        center: [selectedLocation.lng, selectedLocation.lat],
+        zoom: 12,
+        speed: 1.5,
+        curve: 1, // animasyon eğriliği
+        essential: true,
+      });
+    }
+  }, [selectedLocation, map]);
+
+  useEffect(() => {
     const instance = new maplibregl.Map({
       container: mapRef.current,
       style: `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${

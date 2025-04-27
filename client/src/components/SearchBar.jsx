@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import "../styles/Main.css";
+import "../styles/Navbar.css";
 
 export default function SearchBar({ onSelectLocation }) {
   const [query, setQuery] = useState("");

@@ -1,28 +1,54 @@
-import { useEffect, useState } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import {
+  useParams,
+  useSearchParams,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import ListMap from "../components/ListMap";
-import { useRef } from "react";
 import { categories } from "../utils/categories";
-import CategoryFilter from "../components/CategoryFilter";
 
 export default function ListDetail() {
   const navigate = useNavigate();
   const { listId } = useParams();
+  const location = useLocation();
   const [list, setList] = useState(null);
   const [searchParams] = useSearchParams();
   const addedRef = useRef(false);
   const [selectedCategories, setSelectedCategories] = useState(
     categories.map((cat) => cat.key)
   );
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+  });
+
+  const isShared = location.pathname.startsWith("/share");
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/lists/id/${listId}`)
+    if (list) {
+      setEditForm({
+        name: list.name,
+        description: list.description || "",
+      });
+    }
+  }, [list]);
+
+  useEffect(() => {
+    const endpoint = isShared
+      ? `http://localhost:8000/api/lists/share/${listId}`
+      : `http://localhost:8000/api/lists/id/${listId}`;
+
+    fetch(endpoint)
       .then((r) => r.json())
       .then(setList)
       .catch(console.error);
-  }, [listId]);
+  }, [listId, isShared]);
 
   useEffect(() => {
+    if (isShared) return; // paylaşımlı sayfada ekleme olmaz ❌
+
     const pinId = searchParams.get("pin");
     if (!pinId || addedRef.current) return;
 
@@ -38,7 +64,7 @@ export default function ListDetail() {
         navigate(`/lists/${listId}`, { replace: true });
       })
       .catch(console.error);
-  }, [listId, searchParams, navigate]);
+  }, [listId, searchParams, navigate, isShared]);
 
   if (!list) return <p>Loading list...</p>;
 
@@ -62,10 +88,85 @@ export default function ListDetail() {
     setList(updated);
   }
 
+  function handleShareList() {
+    const shareUrl = `${window.location.origin}/share/${listId}`;
+    navigator.clipboard
+      .writeText(shareUrl)
+      .then(() => {
+        alert("✅ Share link copied to clipboard!");
+      })
+      .catch((err) => {
+        console.error("Failed to copy: ", err);
+      });
+  }
+
   return (
     <div style={{ padding: "2rem" }}>
-      <h2>List: {list.name}</h2>
+      {localStorage.getItem("username") === list.createdBy && (
+        <div style={{ marginBottom: "1rem" }}>
+          {!editing ? (
+            <button onClick={() => setEditing(true)}>Edit List</button>
+          ) : (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const username = localStorage.getItem("username");
+                const res = await fetch(
+                  `http://localhost:8000/api/lists/${listId}`,
+                  {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...editForm, username }),
+                  }
+                );
+                const updated = await res.json();
+                setList(updated);
+                setEditing(false);
+              }}
+            >
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, name: e.target.value })
+                }
+                placeholder="List name"
+                required
+              />
+              <textarea
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, description: e.target.value })
+                }
+                placeholder="Description"
+              ></textarea>
+              <button type="submit">Save</button>
+              <button type="button" onClick={() => setEditing(false)}>
+                Cancel
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+      <h2>
+        {isShared ? "Shared List" : "Your List"}: {list.name}
+      </h2>
       <p>Created by: {list.createdBy}</p>
+      {!isShared && (
+        <button
+          style={{
+            marginTop: "1rem",
+            padding: "0.5rem 1rem",
+            background: "lightblue",
+            border: "none",
+            borderRadius: "5px",
+            cursor: "pointer",
+          }}
+          onClick={handleShareList}
+        >
+          🔗 Share this list
+        </button>
+      )}
 
       {validPins.length > 0 ? (
         <>
@@ -84,17 +185,19 @@ export default function ListDetail() {
                 onClick={() => navigate(`/places/${pin._id}`)}
               >
                 <strong>{pin.title}</strong> — {pin.description}
-                {localStorage.getItem("username") === list.createdBy && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRemovePin(pin._id);
-                    }}
-                    style={{ marginLeft: "1rem", color: "red" }}
-                  >
-                    ❌
-                  </button>
-                )}
+                {!isShared &&
+                  localStorage.getItem("username") === list.createdBy &&
+                  editing && ( // edit mod açıkken göster
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePin(pin._id);
+                      }}
+                      style={{ marginLeft: "1rem", color: "red" }}
+                    >
+                      ❌
+                    </button>
+                  )}
               </li>
             ))}
           </ul>

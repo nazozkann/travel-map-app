@@ -1,15 +1,26 @@
-import { useState } from "react";
-import SearchBar from "../components/SearchBar";
+import { useEffect } from "react";
 import MapView from "../components/MapView";
 import "../styles/Main.css";
 
-export default function Home() {
-  const [location, setLocation] = useState(null);
+export default function Home({ location }) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    document.body.style.overflowX = "hidden"; // 👈 Bunu ekstra koy
+    document.body.style.overflowY = "hidden"; // 👈 İkisini net yaz
+    document.body.style.width = "100%";
+    document.body.style.position = "relative";
 
+    return () => {
+      document.body.style.overflow = "auto";
+      document.body.style.overflowX = "auto";
+      document.body.style.overflowY = "auto";
+      document.body.style.width = "auto";
+      document.body.style.position = "static";
+    };
+  }, []);
   return (
-    <>
-      <SearchBar onSelectLocation={setLocation} />
+    <div className="home-container">
       <MapView selectedLocation={location} />
-    </>
+    </div>
   );
 }

@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "../styles/Navbar.css";
+import SearchBar from "./SearchBar";
 
-export default function Navbar() {
+export default function Navbar({ setLocation }) {
   const location = useLocation();
   const [username, setUsername] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,6 +24,7 @@ export default function Navbar() {
       <Link to="/" className="nav-logo-link">
         Explora
       </Link>
+      <SearchBar onSelectLocation={setLocation} />
       <div className="nav-rigth">
         <Link to="/places">Selected</Link>
         {isLoggedIn ? (
