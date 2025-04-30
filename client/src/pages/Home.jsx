@@ -19,8 +19,10 @@ export default function Home({ location }) {
     };
   }, []);
   return (
-    <div className="home-container">
-      <MapView selectedLocation={location} />
+    <div style={{ backgroundColor: "#f8eee3" }}>
+      <div style={{ opacity: "0.9" }} className="home-container">
+        <MapView selectedLocation={location} />
+      </div>
     </div>
   );
 }

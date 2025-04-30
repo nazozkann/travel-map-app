@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "../styles/Main.css";
 
 export default function PinForm() {
   const [formData, setFormData] = useState({
@@ -84,12 +85,15 @@ export default function PinForm() {
         onChange={handleChange}
       ></textarea>
       <input
+        className="file-input"
         type="file"
         name="image"
         accept="image/*"
         onChange={handleChange}
       />
-      <button type="submit">Submit</button>
+      <button id="form-submit" type="submit">
+        Submit
+      </button>
     </form>
   );
 }
