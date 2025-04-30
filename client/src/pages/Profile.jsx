@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { CircleUserRound } from "lucide-react";
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
 import "../styles/Main.css";
@@ -13,6 +13,8 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("added");
   const [collabRequests, setCollabRequests] = useState([]);
   const [notifications, setNotifications] = useState([]);
+
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -44,12 +46,16 @@ export default function Profile() {
       .then((res) => res.json())
       .then(setCollabRequests)
       .catch((err) => console.error("İstekler alınamadı:", err));
+  }, [username]);
+
+  useEffect(() => {
+    if (!username) return;
 
     fetch(`http://localhost:8000/api/lists/notifications/${username}`)
       .then((res) => res.json())
       .then((data) => setNotifications(data))
       .catch((err) => console.error("Bildirimler alınamadı:", err));
-  }, [username]);
+  }, [username, location.pathname]);
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -90,6 +96,30 @@ export default function Profile() {
       }
     } catch (err) {
       console.error("Collab response error:", err);
+    }
+  }
+
+  async function handleMarkAsRead(listId) {
+    try {
+      const res = await fetch(
+        "http://localhost:8000/api/lists/notifications/mark-read",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: localStorage.getItem("username"),
+            listId,
+          }),
+        }
+      );
+      if (res.ok) {
+        setNotifications((prev) => prev.filter((n) => n.listId !== listId));
+      } else {
+        const data = await res.json();
+        alert(data.message);
+      }
+    } catch (err) {
+      console.error("Error marking as read:", err);
     }
   }
 
@@ -137,17 +167,25 @@ export default function Profile() {
 
       <div className="profile-content">
         {notifications.length > 0 && (
-          <div className="notification-section">
+          <div className="profile-section notification-section">
             <h2>Notifications</h2>
-            <ul>
+            <ul className="profile-list">
               {notifications.map((notif) => (
                 <li
                   key={`${notif.listId}-${notif.status}`}
-                  className={`notif-item ${notif.status}`}
+                  className={`profile-list-item notif-item ${notif.status}`}
                 >
-                  Your request to collaborate on
-                  <strong> {notif.listName} </strong>
-                  was <strong>{notif.status}</strong>.
+                  <span>
+                    Your request to collaborate on
+                    <strong> {notif.listName} </strong>
+                    was <strong>{notif.status}</strong>.
+                  </span>
+                  <button
+                    className="ok-button"
+                    onClick={() => handleMarkAsRead(notif.listId)}
+                  >
+                    OK
+                  </button>
                 </li>
               ))}
             </ul>

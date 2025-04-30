@@ -7,6 +7,7 @@ export default function PinForm() {
     category: "",
     description: "",
     image: null,
+    tags: [],
   });
 
   function handleChange(e) {
@@ -24,6 +25,11 @@ export default function PinForm() {
     }
   }
 
+  function handleTagsChange(e) {
+    const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+    setFormData((prev) => ({ ...prev, tags: selected }));
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
 
@@ -32,6 +38,10 @@ export default function PinForm() {
     data.append("category", formData.category);
     data.append("description", formData.description);
     data.append("createdBy", "testuser");
+
+    if (formData.tags.length) {
+      data.append("tags", JSON.stringify(formData.tags));
+    }
 
     if (formData.image) {
       data.append("image", formData.image);
@@ -42,9 +52,16 @@ export default function PinForm() {
         method: "POST",
         body: data,
       });
-
       const result = await res.json();
       console.log("✅ Pin eklendi:", result);
+
+      setFormData({
+        title: "",
+        category: "",
+        description: "",
+        image: null,
+        tags: [],
+      });
     } catch (err) {
       console.error("❌ Hata oluştu:", err);
     }
@@ -78,6 +95,25 @@ export default function PinForm() {
         <option value="nature">Nature</option>
         <option value="other">Other</option>
       </select>
+      <label>
+        Tags
+        <select
+          name="tags"
+          multiple
+          value={formData.tags}
+          onChange={handleTagsChange}
+        >
+          <option value="free">Free</option>
+          <option value="$">$</option>
+          <option value="$$">$$</option>
+          <option value="$$$">$$$</option>
+          <option value="touristic">Touristic</option>
+          <option value="local">Local</option>
+          <option value="new">New</option>
+          <option value="crowded">Crowded</option>
+          <option value="quiet">Quiet</option>
+        </select>
+      </label>
       <textarea
         name="description"
         placeholder="description"

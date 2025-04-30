@@ -14,8 +14,9 @@ export default function ListMap({ pins }) {
   const [selectedCategories, setSelectedCategories] = useState(
     categories.map((cat) => cat.key)
   );
+  const [selectedTags, setSelectedTags] = useState([]);
   const navigate = useNavigate();
-  const markersRef = useRef([]); // 🔥 marker'ları tutacağımız referans
+  const markersRef = useRef([]);
 
   useEffect(() => {
     if (mapRef.current && !mapInstance.current) {
@@ -24,7 +25,7 @@ export default function ListMap({ pins }) {
         style: `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
           import.meta.env.VITE_MAPTILER_API_KEY
         }`,
-        center: [28.9744, 41.0082], // İstanbul merkezli default center
+        center: [28.9744, 41.0082],
         zoom: 4,
       });
       mapInstance.current = instance;
@@ -32,18 +33,34 @@ export default function ListMap({ pins }) {
   }, []);
 
   useEffect(() => {
-    if (!mapInstance.current || !pins) return;
+    const map = mapInstance.current;
+    if (!map || !pins) return;
 
-    // Önce eski marker'ları temizle 🔥
+    // önce eski markerları temizle
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
     pins.forEach((pin) => {
-      if (!selectedCategories.includes(pin.category)) return;
+      // **kategori filtresi:** hiçbir kategori seçili değilse tümünü geç, seçili varsa sadece onlar
+      if (
+        selectedCategories.length > 0 &&
+        !selectedCategories.includes(pin.category)
+      ) {
+        return;
+      }
 
-      const el = getMarkerElement(pin.category);
+      // **etiket filtresi:** hiçbir etiket seçili değilse tümünü geç,
+      // seçili etiket varsa pin.tags içinde en az bir eşleşme olmalı
+      const allTags = selectedTags.length === 0;
+      const hasTag = Array.isArray(pin.tags)
+        ? pin.tags.some((t) => selectedTags.includes(t))
+        : false;
+      if (!allTags && !hasTag) {
+        return;
+      }
 
-      const popupHtml = renderToString(
+      // popup ve marker yarat
+      const html = renderToString(
         <PopUp
           id={pin._id}
           title={pin.title}
@@ -52,32 +69,34 @@ export default function ListMap({ pins }) {
           createdBy={pin.createdBy}
           likes={pin.likes}
           dislikes={pin.dislikes}
+          imageUrl={pin.imageUrl}
         />
       );
 
+      const el = getMarkerElement(pin.category);
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([pin.longitude, pin.latitude])
-        .addTo(mapInstance.current);
+        .addTo(map);
 
-      marker.getElement().addEventListener("mouseenter", () => {
-        new maplibregl.Popup({ offset: 25, closeButton: false })
-          .setLngLat([pin.longitude, pin.latitude])
-          .setHTML(popupHtml)
-          .addTo(mapInstance.current);
-      });
-
+      marker
+        .getElement()
+        .addEventListener("mouseenter", () =>
+          new maplibregl.Popup({ offset: 25, closeButton: false })
+            .setLngLat([pin.longitude, pin.latitude])
+            .setHTML(html)
+            .addTo(map)
+        );
       marker.getElement().addEventListener("mouseleave", () => {
         const popups = document.getElementsByClassName("maplibregl-popup");
-        if (popups.length > 0) popups[0].remove();
+        if (popups.length) popups[0].remove();
       });
+      marker
+        .getElement()
+        .addEventListener("click", () => navigate(`/places/${pin._id}`));
 
-      marker.getElement().addEventListener("click", () => {
-        navigate(`/places/${pin._id}`);
-      });
-
-      markersRef.current.push(marker); // yeni marker'ı kaydet
+      markersRef.current.push(marker);
     });
-  }, [pins, selectedCategories, navigate]);
+  }, [pins, selectedCategories, selectedTags, navigate]);
 
   return (
     <div>
@@ -85,6 +104,8 @@ export default function ListMap({ pins }) {
         <CategoryFilter
           selectedCategories={selectedCategories}
           setSelectedCategories={setSelectedCategories}
+          selectedTags={selectedTags}
+          setSelectedTags={setSelectedTags}
         />
       </div>
     </div>

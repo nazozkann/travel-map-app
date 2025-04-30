@@ -1,0 +1,230 @@
+[
+  {
+    "name": "Nature Escapes",
+    "description": "Serene nature spots around the world.",
+    "createdBy": "alice01",
+    "pins": [
+      "68126f7f5091472757de4654",
+      "68126f7f5091472757de4658",
+      "68126f7f5091472757de465a",
+      "68126f7f5091472757de465e"
+    ],
+    "comments": [
+      {
+        "username": "bob_the_builder",
+        "text": "Love this selection!"
+      }
+    ],
+    "coverImage": "/uploads/centralpark_main.jpg",
+    "likes": 5,
+    "dislikes": 0,
+    "likedBy": ["bob_the_builder", "eva_lee"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Cultural Highlights",
+    "description": "Iconic cultural landmarks to visit.",
+    "createdBy": "bob_the_builder",
+    "pins": [
+      "68126f7f5091472757de4655",
+      "68126f7f5091472757de4657",
+      "68126f7f5091472757de465b",
+      "68126f7f5091472757de4668"
+    ],
+    "comments": [
+      {
+        "username": "alice01",
+        "text": "A must-see list!"
+      }
+    ],
+    "coverImage": "/uploads/eiffel_main.jpg",
+    "likes": 8,
+    "dislikes": 1,
+    "likedBy": ["alice01", "charlie99"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Budget Eats",
+    "description": "Affordable places to eat when on a budget.",
+    "createdBy": "charlie99",
+    "pins": [
+      "68126f7f5091472757de4670",
+      "68126f7f5091472757de4682",
+      "68126f7f5091472757de4683"
+    ],
+    "comments": [
+      {
+        "username": "eva_lee",
+        "text": "Yummy options!"
+      }
+    ],
+    "coverImage": "/uploads/joespizza_main.jpg",
+    "likes": 3,
+    "dislikes": 0,
+    "likedBy": ["eva_lee"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Luxury Stays",
+    "description": "Premium accommodations for ultimate comfort.",
+    "createdBy": "david.kim",
+    "pins": [
+      "68126f7f5091472757de4689",
+      "68126f7f5091472757de4690",
+      "68126f7f5091472757de468a",
+      "68126f7f5091472757de4691"
+    ],
+    "comments": [
+      {
+        "username": "alice01",
+        "text": "Luxurious!"
+      }
+    ],
+    "coverImage": "/uploads/hotel_sunshine_main.jpg",
+    "likes": 4,
+    "dislikes": 0,
+    "likedBy": ["alice01", "bob_the_builder"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Entertainment Hotspots",
+    "description": "Best spots for fun and entertainment.",
+    "createdBy": "eva_lee",
+    "pins": [
+      "68126f7f5091472757de465c",
+      "68126f7f5091472757de4676",
+      "68126f7f5091472757de466e",
+      "68126f7f5091472757de4699"
+    ],
+    "comments": [
+      {
+        "username": "charlie99",
+        "text": "Great picks!"
+      }
+    ],
+    "coverImage": "/uploads/timessquare_main.jpg",
+    "likes": 6,
+    "dislikes": 2,
+    "likedBy": ["eva_lee", "bob_the_builder"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Historic Sites",
+    "description": "Step back in time at these historic destinations.",
+    "createdBy": "alice01",
+    "pins": [
+      "68126f7f5091472757de465b",
+      "68126f7f5091472757de4670",
+      "68126f7f5091472757de4677",
+      "68126f7f5091472757de4663"
+    ],
+    "comments": [
+      {
+        "username": "david.kim",
+        "text": "So educational."
+      }
+    ],
+    "coverImage": "/uploads/colosseum_main.jpg",
+    "likes": 7,
+    "dislikes": 1,
+    "likedBy": ["alice01", "charlie99"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Hidden Gems",
+    "description": "Lesser-known spots worth discovering.",
+    "createdBy": "bob_the_builder",
+    "pins": [
+      "68126f7f5091472757de466d",
+      "68126f7f5091472757de468f",
+      "68126f7f5091472757de469c",
+      "68126f7f5091472757de4679"
+    ],
+    "comments": [
+      {
+        "username": "tatilci01",
+        "text": "Love these places."
+      }
+    ],
+    "coverImage": "/uploads/meteora_main.jpg",
+    "likes": 2,
+    "dislikes": 0,
+    "likedBy": ["bob_the_builder"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "New & Trending",
+    "description": "Up-and-coming destinations you shouldn't miss.",
+    "createdBy": "charlie99",
+    "pins": [
+      "68126f7f5091472757de4658",
+      "68126f7f5091472757de4669",
+      "68126f7f5091472757de465e",
+      "68126f7f5091472757de4675"
+    ],
+    "comments": [
+      {
+        "username": "alice01",
+        "text": "Can't wait to visit!"
+      }
+    ],
+    "coverImage": "/uploads/grandcanyon_main.jpg",
+    "likes": 4,
+    "dislikes": 1,
+    "likedBy": ["charlie99", "tatilci02"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Free Attractions",
+    "description": "Explore these no-cost attractions.",
+    "createdBy": "david.kim",
+    "pins": [
+      "68126f7f5091472757de4654",
+      "68126f7f5091472757de4670",
+      "68126f7f5091472757de4679"
+    ],
+    "comments": [
+      {
+        "username": "bob_the_builder",
+        "text": "Great for budget travel."
+      }
+    ],
+    "coverImage": "/uploads/centralpark_main.jpg",
+    "likes": 3,
+    "dislikes": 0,
+    "likedBy": ["david.kim", "alice01"],
+    "collabRequests": [],
+    "collaborators": []
+  },
+  {
+    "name": "Local Favorites",
+    "description": "Popular spots loved by locals.",
+    "createdBy": "eva_lee",
+    "pins": [
+      "68126f7f5091472757de4682",
+      "68126f7f5091472757de466b",
+      "68126f7f5091472757de4672",
+      "68126f7f5091472757de468b"
+    ],
+    "comments": [
+      {
+        "username": "charlie99",
+        "text": "Authentic experiences!"
+      }
+    ],
+    "coverImage": "/uploads/cafedelaplage_main.jpg",
+    "likes": 5,
+    "dislikes": 0,
+    "likedBy": ["eva_lee", "charlie99"],
+    "collabRequests": [],
+    "collaborators": []
+  }
+]

@@ -129,9 +129,9 @@ input[type="file"]::file-selector-button {
 
 .category-filter-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1rem;
-  justify-content: center;
+  align-items: center;
   height: 100%;
   margin-left: 1rem;
 }
@@ -210,8 +210,11 @@ input[type="file"]::file-selector-button {
 }
 
 .add-pin-button {
-  background: #f8eee3;
-  color: #3a5d81;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #3a5d81;
+  color: #f8eee3;
   border-radius: 0.25rem;
   cursor: pointer;
   z-index: 1000;
@@ -220,6 +223,7 @@ input[type="file"]::file-selector-button {
   height: 100%;
   text-align: center;
   font-size: 0.75rem;
+  font-weight: bold;
 }
 
 .add-pin-button:hover {
@@ -923,4 +927,77 @@ input[type="file"]::file-selector-button {
 
 .slider-arrow.right {
   right: 1rem;
+}
+
+.ok-button {
+  background-color: #3a5d81;
+  color: #f8eee3;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.ok-button:hover {
+  background-color: #f8eee3;
+  color: #3a5d81;
+}
+
+.notif-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ABOUT TAGS */
+
+.tag-free {
+  background: #92b883;
+  color: #f8eee3;
+}
+.tag-\$ {
+  background: #f59d6b;
+  color: #f8eee3;
+}
+.tag-\$\$ {
+  background: #f59d6b;
+  color: #f8eee3;
+}
+.tag-\$\$\$ {
+  background: #f59d6b;
+  color: #f8eee3;
+}
+.tag-touristic {
+  background: #7db8c5;
+  color: #f8eee3;
+}
+.tag-local {
+  background: #7db8c5;
+  color: #f8eee3;
+}
+.tag-new {
+  background: #f26f5b;
+  color: #f8eee3;
+}
+.tag-crowded {
+  background: #d2b5c2;
+  color: #f8eee3;
+}
+.tag-quiet {
+  background: #d2b5c2;
+  color: #f8eee3;
+}
+.tag {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  margin-right: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.tag.active {
+  opacity: 1;
 }

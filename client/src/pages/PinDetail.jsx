@@ -17,6 +17,7 @@ export default function PinDetail() {
     title: "",
     category: "",
     description: "",
+    tags: [],
   });
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelectedListId] = useState("");
@@ -40,6 +41,7 @@ export default function PinDetail() {
         title: pin.title,
         category: pin.category,
         description: pin.description,
+        tags: pin.tags || [],
       });
     }
   }, [pin]);
@@ -198,6 +200,13 @@ export default function PinDetail() {
       )}
 
       <div className="pin-meta">
+        <div className="tag-list">
+          {pin.tags.map((tag) => (
+            <span key={tag} className={`tag tag-${tag}`}>
+              {tag}
+            </span>
+          ))}
+        </div>
         <div className="up-town">
           <p>
             <strong>Category:</strong> {pin.category}
@@ -308,6 +317,9 @@ export default function PinDetail() {
                 formData.append("title", editForm.title);
                 formData.append("category", editForm.category);
                 formData.append("description", editForm.description);
+                if (editForm.tags.length) {
+                  formData.append("tags", JSON.stringify(editForm.tags));
+                }
 
                 const fileInput = e.target.elements.image;
                 if (fileInput && fileInput.files.length > 0) {
@@ -353,6 +365,32 @@ export default function PinDetail() {
                     setEditForm({ ...editForm, category: e.target.value })
                   }
                 />
+              </label>
+              <label>
+                Tags
+                <select
+                  multiple
+                  value={editForm.tags}
+                  onChange={(e) =>
+                    setEditForm({
+                      ...editForm,
+                      tags: Array.from(
+                        e.target.selectedOptions,
+                        (opt) => opt.value
+                      ),
+                    })
+                  }
+                >
+                  <option value="free">Free</option>
+                  <option value="$">$</option>
+                  <option value="$$">$$</option>
+                  <option value="$$$">$$$</option>
+                  <option value="touristic">Touristic</option>
+                  <option value="local">Local</option>
+                  <option value="new">New</option>
+                  <option value="crowded">Crowded</option>
+                  <option value="quiet">Quiet</option>
+                </select>
               </label>
 
               <label>
