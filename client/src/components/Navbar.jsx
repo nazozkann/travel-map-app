@@ -7,6 +7,7 @@ export default function Navbar({ setLocation }) {
   const location = useLocation();
   const [username, setUsername] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [hasNotifications, setHasNotifications] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -14,6 +15,28 @@ export default function Navbar({ setLocation }) {
     if (token) {
       setIsLoggedIn(true);
       setUsername(storedUsername);
+
+      fetch(`http://localhost:8000/api/lists/notifications/${storedUsername}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.length > 0) {
+            setHasNotifications(true);
+          } else {
+            setHasNotifications(false);
+          }
+        })
+        .catch((err) => {
+          console.error("Notification fetch failed:", err);
+        });
+
+      fetch(`http://localhost:8000/api/lists/collab-requests/${storedUsername}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.length > 0) {
+            setHasNotifications(true);
+          }
+        })
+        .catch(console.error);
     } else {
       setIsLoggedIn(false);
     }
@@ -30,7 +53,10 @@ export default function Navbar({ setLocation }) {
       <div className="nav-rigth">
         <Link to="/places">Selected</Link>
         {isLoggedIn ? (
-          <Link to="/profile">Profile</Link>
+          <div className="nav-profile-wrapper">
+            <Link to="/profile">Profile</Link>
+            {hasNotifications && <span className="notification-dot" />}
+          </div>
         ) : (
           <Link to="/auth">Login</Link>
         )}

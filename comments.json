@@ -1,0 +1,424 @@
+[
+  {
+    "_id": "ObjectId('6807d35cfdd478caa9fe2594')",
+    "pinId": "ObjectId('6807d2c8fdd478caa9fe257b')",
+    "username": "tatilci01",
+    "text": "'This is awasome'",
+    "createdAt": "2025-04-22T17:35:24.936Z",
+    "updatedAt": "2025-04-22T17:35:24.936Z",
+    "__v": 0
+  },
+  {
+    "_id": "ObjectId('68120ed29dbb6df7aeca5767')",
+    "pinId": "ObjectId('6807d28cfdd478caa9fe256b')",
+    "username": "tatilci01",
+    "text": "'Thank you for this amazing place ! '",
+    "createdAt": "2025-04-30T11:51:46.716Z",
+    "updatedAt": "2025-04-30T11:51:46.716Z",
+    "__v": "0"
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4654')",
+    "username": "tatilci01",
+    "text": "Central Park is a must-see! 🌳",
+    "createdAt": "2025-05-01T10:05:00.000Z",
+    "updatedAt": "2025-05-01T10:05:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4654')",
+    "username": "alice01",
+    "text": "Love jogging here early in the morning.",
+    "createdAt": "2025-05-01T10:06:00.000Z",
+    "updatedAt": "2025-05-01T10:06:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4655')",
+    "username": "bob_the_builder",
+    "text": "Climbing the Eiffel Tower at sunset is magical.",
+    "createdAt": "2025-05-01T10:07:00.000Z",
+    "updatedAt": "2025-05-01T10:07:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4655')",
+    "username": "tatilci02",
+    "text": "Queue was long but totally worth it!",
+    "createdAt": "2025-05-01T10:08:00.000Z",
+    "updatedAt": "2025-05-01T10:08:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4656')",
+    "username": "charlie99",
+    "text": "Peaceful strolls in Shinjuku Gyoen 😊",
+    "createdAt": "2025-05-01T10:09:00.000Z",
+    "updatedAt": "2025-05-01T10:09:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4656')",
+    "username": "eva_lee",
+    "text": "Cherry blossom season here is unreal!",
+    "createdAt": "2025-05-01T10:10:00.000Z",
+    "updatedAt": "2025-05-01T10:10:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4657')",
+    "username": "david.kim",
+    "text": "Spent an entire day at the Louvre and still didn’t finish!",
+    "createdAt": "2025-05-01T10:11:00.000Z",
+    "updatedAt": "2025-05-01T10:11:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4657')",
+    "username": "tatilci01",
+    "text": "Mona Lisa was smaller than I expected 😅",
+    "createdAt": "2025-05-01T10:12:00.000Z",
+    "updatedAt": "2025-05-01T10:12:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4658')",
+    "username": "tatilci02",
+    "text": "Opera House tour was fantastic!",
+    "createdAt": "2025-05-01T10:13:00.000Z",
+    "updatedAt": "2025-05-01T10:13:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4658')",
+    "username": "bob_the_builder",
+    "text": "Loved the acoustics during the concert.",
+    "createdAt": "2025-05-01T10:14:00.000Z",
+    "updatedAt": "2025-05-01T10:14:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4659')",
+    "username": "alice01",
+    "text": "Grand Canyon views took my breath away!",
+    "createdAt": "2025-05-01T10:15:00.000Z",
+    "updatedAt": "2025-05-01T10:15:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4659')",
+    "username": "charlie99",
+    "text": "Sunrise hike was unforgettable.",
+    "createdAt": "2025-05-01T10:16:00.000Z",
+    "updatedAt": "2025-05-01T10:16:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465a')",
+    "username": "eva_lee",
+    "text": "Yosemite’s waterfalls are spectacular!",
+    "createdAt": "2025-05-01T10:17:00.000Z",
+    "updatedAt": "2025-05-01T10:17:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465a')",
+    "username": "david.kim",
+    "text": "Rock-climbing heaven right here.",
+    "createdAt": "2025-05-01T10:18:00.000Z",
+    "updatedAt": "2025-05-01T10:18:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465b')",
+    "username": "tatilci01",
+    "text": "Colosseum night tour was spooky and cool!",
+    "createdAt": "2025-05-01T10:19:00.000Z",
+    "updatedAt": "2025-05-01T10:19:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465b')",
+    "username": "alice01",
+    "text": "History comes alive here.",
+    "createdAt": "2025-05-01T10:20:00.000Z",
+    "updatedAt": "2025-05-01T10:20:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465c')",
+    "username": "bob_the_builder",
+    "text": "Times Square is electric at midnight!",
+    "createdAt": "2025-05-01T10:21:00.000Z",
+    "updatedAt": "2025-05-01T10:21:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465c')",
+    "username": "tatilci02",
+    "text": "Too crowded but still iconic.",
+    "createdAt": "2025-05-01T10:22:00.000Z",
+    "updatedAt": "2025-05-01T10:22:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465d')",
+    "username": "charlie99",
+    "text": "Santorini sunsets are the best in the world.",
+    "createdAt": "2025-05-01T10:23:00.000Z",
+    "updatedAt": "2025-05-01T10:23:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465d')",
+    "username": "eva_lee",
+    "text": "Stayed here for our honeymoon ❤️",
+    "createdAt": "2025-05-01T10:24:00.000Z",
+    "updatedAt": "2025-05-01T10:24:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465e')",
+    "username": "david.kim",
+    "text": "Climbed Mt Fuji overnight—totally epic.",
+    "createdAt": "2025-05-01T10:25:00.000Z",
+    "updatedAt": "2025-05-01T10:25:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465e')",
+    "username": "tatilci01",
+    "text": "Cold but rewarding summit view!",
+    "createdAt": "2025-05-01T10:26:00.000Z",
+    "updatedAt": "2025-05-01T10:26:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465f')",
+    "username": "alice01",
+    "text": "British Museum is free and fantastic.",
+    "createdAt": "2025-05-01T10:27:00.000Z",
+    "updatedAt": "2025-05-01T10:27:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de465f')",
+    "username": "bob_the_builder",
+    "text": "Rosetta Stone was mind-blowing to see!",
+    "createdAt": "2025-05-01T10:28:00.000Z",
+    "updatedAt": "2025-05-01T10:28:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4660')",
+    "username": "tatilci02",
+    "text": "Shop till you drop at Dubai Mall 🛍️",
+    "createdAt": "2025-05-01T10:29:00.000Z",
+    "updatedAt": "2025-05-01T10:29:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4660')",
+    "username": "charlie99",
+    "text": "Aquarium inside the mall is huge!",
+    "createdAt": "2025-05-01T10:30:00.000Z",
+    "updatedAt": "2025-05-01T10:30:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4661')",
+    "username": "eva_lee",
+    "text": "Snorkeling the Reef was life-changing.",
+    "createdAt": "2025-05-01T10:31:00.000Z",
+    "updatedAt": "2025-05-01T10:31:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4661')",
+    "username": "david.kim",
+    "text": "Saw a turtle up close! 🐢",
+    "createdAt": "2025-05-01T10:32:00.000Z",
+    "updatedAt": "2025-05-01T10:32:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4662')",
+    "username": "alice01",
+    "text": "Base camp views are humbling.",
+    "createdAt": "2025-05-01T10:33:00.000Z",
+    "updatedAt": "2025-05-01T10:33:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4662')",
+    "username": "bob_the_builder",
+    "text": "Bucket-list item checked off!",
+    "createdAt": "2025-05-01T10:34:00.000Z",
+    "updatedAt": "2025-05-01T10:34:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4663')",
+    "username": "charlie99",
+    "text": "Hiked Machu Picchu trail—so green!",
+    "createdAt": "2025-05-01T10:35:00.000Z",
+    "updatedAt": "2025-05-01T10:35:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4663')",
+    "username": "tatilci02",
+    "text": "Incredible history in the clouds.",
+    "createdAt": "2025-05-01T10:36:00.000Z",
+    "updatedAt": "2025-05-01T10:36:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4664')",
+    "username": "eva_lee",
+    "text": "Bali rice terraces are picture perfect.",
+    "createdAt": "2025-05-01T10:37:00.000Z",
+    "updatedAt": "2025-05-01T10:37:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4664')",
+    "username": "alice01",
+    "text": "Loved the fresh coconut water nearby!",
+    "createdAt": "2025-05-01T10:38:00.000Z",
+    "updatedAt": "2025-05-01T10:38:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4665')",
+    "username": "david.kim",
+    "text": "Santa Monica pier at sunset = vibes 🎡",
+    "createdAt": "2025-05-01T10:39:00.000Z",
+    "updatedAt": "2025-05-01T10:39:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4665')",
+    "username": "bob_the_builder",
+    "text": "The street performers were awesome.",
+    "createdAt": "2025-05-01T10:40:00.000Z",
+    "updatedAt": "2025-05-01T10:40:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4666')",
+    "username": "tatilci01",
+    "text": "Taj Mahal is breathtaking in dawn light.",
+    "createdAt": "2025-05-01T10:41:00.000Z",
+    "updatedAt": "2025-05-01T10:41:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4666')",
+    "username": "charlie99",
+    "text": "Crowded but absolutely worth the trip.",
+    "createdAt": "2025-05-01T10:42:00.000Z",
+    "updatedAt": "2025-05-01T10:42:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4667')",
+    "username": "eva_lee",
+    "text": "Vatican Museums are art overload!",
+    "createdAt": "2025-05-01T10:43:00.000Z",
+    "updatedAt": "2025-05-01T10:43:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4667')",
+    "username": "david.kim",
+    "text": "Sistine Chapel ceiling is mesmerizing.",
+    "createdAt": "2025-05-01T10:44:00.000Z",
+    "updatedAt": "2025-05-01T10:44:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4668')",
+    "username": "alice01",
+    "text": "Prague Castle courtyard views are stunning.",
+    "createdAt": "2025-05-01T10:45:00.000Z",
+    "updatedAt": "2025-05-01T10:45:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4668')",
+    "username": "bob_the_builder",
+    "text": "Great spot for sunset photos!",
+    "createdAt": "2025-05-01T10:46:00.000Z",
+    "updatedAt": "2025-05-01T10:46:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4669')",
+    "username": "charlie99",
+    "text": "Blue Lagoon spa was so relaxing.",
+    "createdAt": "2025-05-01T10:47:00.000Z",
+    "updatedAt": "2025-05-01T10:47:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de4669')",
+    "username": "tatilci02",
+    "text": "Skin felt amazing afterwards!",
+    "createdAt": "2025-05-01T10:48:00.000Z",
+    "updatedAt": "2025-05-01T10:48:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de466a')",
+    "username": "eva_lee",
+    "text": "Kilimanjaro base camp vibes were awesome.",
+    "createdAt": "2025-05-01T10:49:00.000Z",
+    "updatedAt": "2025-05-01T10:49:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de466a')",
+    "username": "david.kim",
+    "text": "Ready for the summit next time!",
+    "createdAt": "2025-05-01T10:50:00.000Z",
+    "updatedAt": "2025-05-01T10:50:00.000Z",
+    "__v": 0
+  },
+
+  {
+    "pinId": "ObjectId('68126f7f5091472757de466b')",
+    "username": "tatilci01",
+    "text": "Banff lakes are like postcards.",
+    "createdAt": "2025-05-01T10:51:00.000Z",
+    "updatedAt": "2025-05-01T10:51:00.000Z",
+    "__v": 0
+  },
+  {
+    "pinId": "ObjectId('68126f7f5091472757de466b')",
+    "username": "alice01",
+    "text": "Saw a moose on the trail!",
+    "createdAt": "2025-05-01T10:52:00.000Z",
+    "updatedAt": "2025-05-01T10:52:00.000Z",
+    "__v": 0
+  }
+]

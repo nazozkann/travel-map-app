@@ -1,28 +1,40 @@
+// src/components/CategoryFilter.jsx
 import { categories } from "../utils/categories";
+import { tags } from "../utils/tags";
 import "../styles/Main.css";
 
 export default function CategoryFilter({
   selectedCategories,
   setSelectedCategories,
+  selectedTags,
+  setSelectedTags,
   isAdding,
   setIsAdding,
 }) {
   const toggleCategory = (e, key) => {
     e.preventDefault();
-    if (selectedCategories.includes(key)) {
-      setSelectedCategories(selectedCategories.filter((c) => c !== key));
-    } else {
-      setSelectedCategories([...selectedCategories, key]);
-    }
+    setSelectedCategories((cs) =>
+      cs.includes(key) ? cs.filter((c) => c !== key) : [...cs, key]
+    );
+  };
+  const toggleAllCategories = (e) => {
+    e.preventDefault();
+    setSelectedCategories((sel) =>
+      sel.length === categories.length ? [] : categories.map((c) => c.key)
+    );
   };
 
-  const handleToggleAll = (e) => {
+  const toggleTag = (e, key) => {
     e.preventDefault();
-    if (selectedCategories.length === categories.length) {
-      setSelectedCategories([]);
-    } else {
-      setSelectedCategories(categories.map((cat) => cat.key));
-    }
+    setSelectedTags((ts) =>
+      ts.includes(key) ? ts.filter((t) => t !== key) : [...ts, key]
+    );
+  };
+  const toggleAllTags = (e) => {
+    e.preventDefault();
+    setSelectedTags((sel) =>
+      sel.length === tags.length ? [] : tags.map((t) => t.key)
+    );
   };
 
   return (
@@ -31,34 +43,42 @@ export default function CategoryFilter({
         {categories.map(({ key, icon }) => (
           <button
             key={key}
-            className={`category-btn-${key} category-btn ${
+            className={`category-btn category-btn-${key} ${
               selectedCategories.includes(key) ? "active" : ""
             }`}
             onClick={(e) => toggleCategory(e, key)}
           >
             <img
               src={`/assets/icons/${icon.displayName}.svg`}
-              alt={icon.displayName}
-              style={{
-                width: "1.85rem",
-                height: "1.85rem",
-              }}
+              alt={key}
+              style={{ width: "1.85rem", height: "1.85rem" }}
             />
           </button>
         ))}
-        <button
-          className="turn-off-all"
-          onClick={(e) => handleToggleAll(e)}
-        ></button>
-      </div>
-      <div className="category-filter">
+        <button className="turn-off-all" onClick={toggleAllCategories}></button>
+
         <div
-          className="add-pin-button"
-          style={isAdding ? {} : { fontWeight: "800", fontSize: "1rem" }}
+          className={`add-pin-button ${isAdding ? "adding" : ""}`}
           onClick={() => setIsAdding((prev) => !prev)}
+          title={isAdding ? "Cancel add-pin mode" : "Enter add-pin mode"}
         >
           {isAdding ? "Cancel" : "+"}
         </div>
+      </div>
+
+      <div className="category-filter">
+        {tags.map(({ key, label }) => (
+          <button
+            key={key}
+            className={`tag tag-${key} ${
+              selectedTags.includes(key) ? "active" : ""
+            }`}
+            onClick={(e) => toggleTag(e, key)}
+          >
+            {label}
+          </button>
+        ))}
+        <button className="turn-off-all" onClick={toggleAllTags}></button>
       </div>
     </div>
   );

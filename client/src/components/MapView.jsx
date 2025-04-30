@@ -7,6 +7,7 @@ import PinForm from "./PinForm";
 import getMarkerElement from "../utils/getMarkerElement";
 import CategoryFilter from "./CategoryFilter";
 import { categories } from "../utils/categories";
+import { tags } from "../utils/tags";
 import { useNavigate } from "react-router-dom";
 
 export default function MapView({ selectedLocation }) {
@@ -18,6 +19,7 @@ export default function MapView({ selectedLocation }) {
   const [selectedCategories, setSelectedCategories] = useState(
     categories.map((cat) => cat.key)
   );
+  const [selectedTags, setSelectedTags] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -45,6 +47,17 @@ export default function MapView({ selectedLocation }) {
       .then((pins) => {
         pins.forEach((pin) => {
           if (!selectedCategories.includes(pin.category)) return;
+
+          const filterTags =
+            selectedTags.length > 0 && selectedTags.length < tags.length;
+          if (filterTags) {
+            if (
+              !Array.isArray(pin.tags) ||
+              !pin.tags.some((t) => selectedTags.includes(t))
+            ) {
+              return;
+            }
+          }
 
           const html = renderToString(
             <PopUp
@@ -91,18 +104,16 @@ export default function MapView({ selectedLocation }) {
           markersRef.current.push(marker);
         });
       });
-  }, [selectedCategories, map, isAdding]);
+  }, [selectedCategories, map, isAdding, selectedTags]);
 
   useEffect(() => {
     if (!map) return;
 
-    map.on("click", ({ lngLat }) => {
+    const handleMapClick = ({ lngLat }) => {
       const { lng, lat } = lngLat;
-
       if (!isAdding) return;
 
       const formHTML = renderToString(<PinForm />);
-
       const popup = new maplibregl.Popup({ offset: 25 }).setHTML(formHTML);
       popup.setLngLat([lng, lat]).addTo(map);
 
@@ -115,7 +126,6 @@ export default function MapView({ selectedLocation }) {
 
           const username = localStorage.getItem("username") || "anonim";
           const formData = new FormData(ev.target);
-
           formData.append("latitude", lat.toString());
           formData.append("longitude", lng.toString());
           formData.append("createdBy", username);
@@ -143,7 +153,6 @@ export default function MapView({ selectedLocation }) {
                 dislikes={newPin.dislikes}
               />
             );
-
             const hoverPopup = new maplibregl.Popup({
               offset: 25,
               closeButton: false,
@@ -155,13 +164,11 @@ export default function MapView({ selectedLocation }) {
                 .setLngLat([newPin.longitude, newPin.latitude])
                 .addTo(map);
             });
-
             marker.getElement().addEventListener("mouseleave", () => {
               hoverPopup.remove();
             });
 
             markersRef.current.push(marker);
-
             popup.remove();
             setIsAdding(false);
           } catch (err) {
@@ -169,8 +176,14 @@ export default function MapView({ selectedLocation }) {
           }
         });
       });
-    });
-  }, [isAdding, map]);
+    };
+
+    map.on("click", handleMapClick);
+
+    return () => {
+      map.off("click", handleMapClick);
+    };
+  }, [map, isAdding]);
 
   useEffect(() => {
     if (map && selectedLocation) {
@@ -196,9 +209,8 @@ export default function MapView({ selectedLocation }) {
   }, [selectedLocation, map]);
 
   useEffect(() => {
-    if (map) {
-      map.getCanvas().style.cursor = isAdding ? "crosshair" : "grab";
-    }
+    if (!map) return;
+    map.getCanvas().style.cursor = isAdding ? "crosshair" : "";
   }, [isAdding, map]);
 
   return (
@@ -208,6 +220,8 @@ export default function MapView({ selectedLocation }) {
         setSelectedCategories={setSelectedCategories}
         isAdding={isAdding}
         setIsAdding={setIsAdding}
+        setSelectedTags={setSelectedTags}
+        selectedTags={selectedTags}
       />
     </div>
   );

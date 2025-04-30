@@ -260,11 +260,10 @@ router.get("/notifications/:username", async (req, res) => {
     const notifications = [];
 
     for (const list of lists) {
-      let hasUpdates = false;
       for (const r of list.collabRequests) {
         if (
           r.username === req.params.username &&
-          (r.status === "accepted" || r.status === "rejected") &&
+          ["accepted", "rejected"].includes(r.status) &&
           !r.notified
         ) {
           notifications.push({
@@ -272,12 +271,7 @@ router.get("/notifications/:username", async (req, res) => {
             listName: list.name,
             status: r.status,
           });
-          r.notified = true;
-          hasUpdates = true;
         }
-      }
-      if (hasUpdates) {
-        await list.save();
       }
     }
 
@@ -285,6 +279,28 @@ router.get("/notifications/:username", async (req, res) => {
   } catch (err) {
     console.error("❌ Bildirimler alınamadı:", err);
     res.status(500).json({ message: "Bildirim alınırken hata oluştu" });
+  }
+});
+
+router.post("/notifications/mark-read", async (req, res) => {
+  const { username, listId } = req.body;
+  try {
+    const list = await List.findById(listId);
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    const reqEntry = list.collabRequests.find(
+      (r) => r.username === username && !r.notified
+    );
+    if (!reqEntry) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    reqEntry.notified = true;
+    await list.save();
+    res.json({ message: "Marked read" });
+  } catch (err) {
+    console.error("Error marking read:", err);
+    res.status(500).json({ message: "Server error" });
   }
 });
 

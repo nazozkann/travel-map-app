@@ -21,8 +21,15 @@ const uploadFields = upload.fields([
 
 router.post("/", uploadFields, async (req, res) => {
   try {
-    const { title, category, description, latitude, longitude, createdBy } =
-      req.body;
+    const {
+      title,
+      category,
+      tags,
+      description,
+      latitude,
+      longitude,
+      createdBy,
+    } = req.body;
 
     const imageUrl = req.files?.image?.length
       ? `/uploads/${req.files.image[0].filename}`
@@ -34,6 +41,7 @@ router.post("/", uploadFields, async (req, res) => {
     const newPin = new Pin({
       title,
       category,
+      tags,
       description,
       latitude,
       longitude,
@@ -60,10 +68,10 @@ router.put("/:id", uploadFields, async (req, res) => {
         .status(403)
         .json({ message: "You can only update your own pins" });
 
-    /* alan güncellemeleri */
     pin.title = title || pin.title;
     pin.category = category || pin.category;
     pin.description = description || pin.description;
+    pin.tags = req.body.tags ? JSON.parse(req.body.tags) : pin.tags;
 
     if (req.files?.image?.length) {
       pin.imageUrl = `/uploads/${req.files.image[0].filename}`;

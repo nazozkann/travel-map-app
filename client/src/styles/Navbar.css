@@ -81,3 +81,19 @@ a {
   color: #f8eee384;
   font-weight: bold;
 }
+
+/* BADGE */
+.nav-profile-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.notification-dot {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+}
