@@ -5,25 +5,31 @@ const router = express.Router();
 const Pin = require("../models/Pin");
 
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+  destination: (_, __, cb) => cb(null, "uploads/"),
+  filename: (_, file, cb) => {
+    const unique = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
   },
 });
 
 const upload = multer({ storage });
 
-router.post("/", upload.single("image"), async (req, res) => {
+const uploadFields = upload.fields([
+  { name: "image", maxCount: 1 },
+  { name: "images", maxCount: 10 },
+]);
+
+router.post("/", uploadFields, async (req, res) => {
   try {
     const { title, category, description, latitude, longitude, createdBy } =
       req.body;
 
-    const imageUrl = req.file
-      ? `http://localhost:8000/uploads/${req.file.filename}`
+    const imageUrl = req.files?.image?.length
+      ? `/uploads/${req.files.image[0].filename}`
       : "";
+    const images = req.files?.images?.length
+      ? req.files.images.map((f) => `/uploads/${f.filename}`)
+      : [];
 
     const newPin = new Pin({
       title,
@@ -33,13 +39,55 @@ router.post("/", upload.single("image"), async (req, res) => {
       longitude,
       createdBy,
       imageUrl,
+      images,
     });
 
-    const savedPin = await newPin.save();
-    res.status(201).json(savedPin);
+    const saved = await newPin.save();
+    res.status(201).json(saved);
   } catch (err) {
     console.error("❌ Pin eklenemedi:", err);
     res.status(500).json({ message: "Error while creating pin" });
+  }
+});
+
+router.put("/:id", uploadFields, async (req, res) => {
+  try {
+    const { title, category, description, username } = req.body;
+    const pin = await Pin.findById(req.params.id);
+    if (!pin) return res.status(404).json({ message: "Pin not found" });
+    if (pin.createdBy !== username)
+      return res
+        .status(403)
+        .json({ message: "You can only update your own pins" });
+
+    /* alan güncellemeleri */
+    pin.title = title || pin.title;
+    pin.category = category || pin.category;
+    pin.description = description || pin.description;
+
+    if (req.files?.image?.length) {
+      pin.imageUrl = `/uploads/${req.files.image[0].filename}`;
+    }
+
+    if (req.files?.images?.length) {
+      const newPaths = req.files.images.map((f) => `/uploads/${f.filename}`);
+      pin.images = [...(pin.images || []), ...newPaths];
+    }
+
+    const updated = await pin.save();
+    res.json(updated);
+  } catch (err) {
+    console.error("❌ Pin update error:", err);
+    res.status(500).json({ message: "Error while updating pin" });
+  }
+});
+
+router.get("/:id", async (req, res) => {
+  try {
+    const pin = await Pin.findById(req.params.id);
+    return res.status(200).json(pin);
+  } catch (err) {
+    res.status(500).json({ message: "Error while fetching pin" });
   }
 });
 
@@ -105,15 +153,6 @@ router.put("/:id/dislike", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
-  try {
-    const pin = await Pin.findById(req.params.id);
-    return res.status(200).json(pin);
-  } catch (err) {
-    res.status(500).json({ message: "Error while fetching pin" });
-  }
-});
-
 router.delete("/:id", async (req, res) => {
   const { username } = req.body;
   try {
@@ -132,32 +171,13 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ message: "Error while deleting pin" });
   }
 });
-router.put("/:id", upload.single("image"), async (req, res) => {
-  try {
-    const { title, category, description, username } = req.body;
-    const pin = await Pin.findById(req.params.id);
 
-    if (!pin) return res.status(404).json({ message: "Pin not found" });
-    if (pin.createdBy !== username) {
-      return res
-        .status(403)
-        .json({ message: "You can only update your own pins" });
-    }
-
-    pin.title = title || pin.title;
-    pin.category = category || pin.category;
-    pin.description = description || pin.description;
-
-    if (req.file) {
-      pin.imageUrl = `http://localhost:8000/uploads/${req.file.filename}`;
-    }
-
-    const updated = await pin.save();
-    res.status(200).json(updated);
-  } catch (err) {
-    console.error("❌ Pin update error:", err);
-    res.status(500).json({ message: "Error while updating pin" });
+router.post("/upload-images", upload.array("images", 10), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ message: "No files uploaded" });
   }
-});
 
+  const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
+  res.status(200).json({ images: imagePaths });
+});
 module.exports = router;

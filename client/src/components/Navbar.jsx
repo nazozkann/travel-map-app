@@ -24,7 +24,9 @@ export default function Navbar({ setLocation }) {
       <Link to="/" className="nav-logo-link">
         Explora
       </Link>
-      <SearchBar onSelectLocation={setLocation} />
+      {location.pathname === "/" && (
+        <SearchBar onSelectLocation={setLocation} />
+      )}
       <div className="nav-rigth">
         <Link to="/places">Selected</Link>
         {isLoggedIn ? (

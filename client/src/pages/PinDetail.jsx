@@ -2,6 +2,9 @@ import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import DetailMap from "../components/DetailMap";
 import { useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
+import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
+import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
 
 export default function PinDetail() {
   const navigate = useNavigate();
@@ -18,6 +21,9 @@ export default function PinDetail() {
   const [lists, setLists] = useState([]);
   const [selectedListId, setSelectedListId] = useState("");
   const [newListName, setNewListName] = useState("");
+  const [showListFields, setShowListFields] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [extraImages, setExtraImages] = useState([]);
 
   useEffect(() => {
     const username = localStorage.getItem("username");
@@ -57,17 +63,12 @@ export default function PinDetail() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username }),
     });
-
     const data = await res.json();
-
     if (!res.ok) {
       alert(data.message);
       return;
     }
-
-    if (data._id) {
-      setPin(data);
-    }
+    if (data._id) setPin(data);
   }
 
   async function handleDislike() {
@@ -77,17 +78,12 @@ export default function PinDetail() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username }),
     });
-
     const data = await res.json();
-
     if (!res.ok) {
       alert(data.message);
       return;
     }
-
-    if (data._id) {
-      setPin(data);
-    }
+    if (data._id) setPin(data);
   }
 
   async function handleDelete(commentId) {
@@ -101,9 +97,7 @@ export default function PinDetail() {
           body: JSON.stringify({ username }),
         }
       );
-
-      const result = res.json();
-
+      const result = await res.json();
       if (res.ok) {
         setComments((prev) =>
           prev.filter((comment) => comment._id !== commentId)
@@ -119,21 +113,16 @@ export default function PinDetail() {
   async function handleDeletePin() {
     const confirmDelete = confirm("Are you sure you want to delete this pin?");
     if (!confirmDelete) return;
-
     const username = localStorage.getItem("username");
-
     try {
       const res = await fetch(`http://localhost:8000/api/pins/${pin._id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-
       const data = await res.json();
-
       if (res.ok) {
         alert("Pin deleted!");
-
         window.location.href = "/";
       } else {
         alert(data.message);
@@ -147,13 +136,6 @@ export default function PinDetail() {
   async function handleSubmit(e) {
     e.preventDefault();
     const username = localStorage.getItem("username") || "anonymous";
-
-    console.log("🎯 Gönderilen veri:", {
-      pinId: id,
-      username,
-      text: newComment,
-    });
-
     const res = await fetch("http://localhost:8000/api/comments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -163,7 +145,6 @@ export default function PinDetail() {
         text: newComment,
       }),
     });
-
     const added = await res.json();
     setComments((prev) => [added, ...prev]);
     setNewComment("");
@@ -175,7 +156,6 @@ export default function PinDetail() {
 
     try {
       let listIdToUse = selectedListId;
-
       if (!listIdToUse && newListName) {
         const res = await fetch("http://localhost:8000/api/lists", {
           method: "POST",
@@ -201,160 +181,239 @@ export default function PinDetail() {
   if (!pin) return <p>Loading...</p>;
 
   return (
-    <div style={{ padding: "2rem" }}>
-      <div>
+    <div className="pin-detail-container">
+      <div className="title-edit">
+        <h1 className="pin-title">{pin.title}</h1>
         {localStorage.getItem("username") === pin.createdBy && (
-          <button
-            style={{ background: "red", color: "white", marginTop: "1rem" }}
-            onClick={handleDeletePin}
-          >
-            Delete this place
+          <button className="edit-button" onClick={() => setEditing(true)}>
+            Edit
           </button>
         )}
       </div>
-      <div>
-        {localStorage.getItem("username") === pin.createdBy && (
-          <button
-            style={{ background: "red", color: "white", marginTop: "1rem" }}
-            onClick={() => setEditing(true)}
-          >
-            Edit this place
-          </button>
-        )}
-      </div>
-      <div>
-        {editing && (
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const username = localStorage.getItem("username");
 
-              const formData = new FormData();
-              formData.append("username", username);
-              formData.append("title", editForm.title);
-              formData.append("category", editForm.category);
-              formData.append("description", editForm.description);
-
-              const fileInput = e.target.elements.image;
-              if (fileInput && fileInput.files.length > 0) {
-                formData.append("image", fileInput.files[0]);
-              }
-
-              const res = await fetch(`http://localhost:8000/api/pins/${id}`, {
-                method: "PUT",
-                body: formData,
-              });
-              const updated = await res.json();
-              setPin(updated);
-              setEditing(false);
-            }}
-          >
-            <input
-              value={editForm.title}
-              onChange={(e) =>
-                setEditForm({ ...editForm, title: e.target.value })
-              }
-            />
-            <input
-              value={editForm.category}
-              onChange={(e) =>
-                setEditForm({ ...editForm, category: e.target.value })
-              }
-            />
-            <textarea
-              value={editForm.description}
-              onChange={(e) =>
-                setEditForm({ ...editForm, description: e.target.value })
-              }
-            ></textarea>
-            <input type="file" name="image" accept="image/*" />
-            <button type="submit">Save</button>
-          </form>
-        )}
-      </div>
-      <h2>{pin.title}</h2>
       {pin.imageUrl && (
-        <div
-          style={{
-            width: "100px",
-            height: "100px",
-            overflow: "hidden",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            marginBottom: "0.5rem",
-          }}
-        >
-          <img
-            src={pin.imageUrl}
-            alt="Pin visual"
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              objectPosition: "center",
-            }}
-          />
+        <div className="pin-image-wrapper">
+          <img src={pin.imageUrl} alt={pin.title} />
         </div>
       )}
-      <p>
-        <strong>Category:</strong> {pin.category}
-      </p>
-      <p>
-        <strong>By:</strong> {pin.createdBy}
-      </p>
-      <p>
-        <strong>Description:</strong> {pin.description}
-      </p>
-      <div>
-        <button onClick={handleLike}>👍</button>
-        <p>{pin.likes}</p>
+
+      <div className="pin-meta">
+        <div className="up-town">
+          <p>
+            <strong>Category:</strong> {pin.category}
+          </p>
+          <p>
+            <strong>By:</strong> {pin.createdBy}
+          </p>
+        </div>
+        <p>
+          <strong>Description:</strong> {pin.description}
+        </p>
       </div>
-      <div>
-        <button onClick={handleDislike}>👎</button>
-        <p>{pin.dislikes}</p>
+
+      <div className="pin-reactions">
+        <button onClick={handleLike}>
+          <IoIosThumbsUp style={{ width: "1.25rem", height: "auto" }} />
+        </button>{" "}
+        <span>{pin.likes}</span>
+        <button onClick={handleDislike}>
+          <IoIosThumbsDown style={{ width: "1.25rem", height: "auto" }} />
+        </button>{" "}
+        <span>{pin.dislikes}</span>
       </div>
+
+      {pin?.images && pin.images.length > 0 && (
+        <div className="extra-images-slider">
+          <button
+            className="slider-arrow left"
+            onClick={() =>
+              setCurrentImageIndex((prev) =>
+                prev === 0 ? pin.images.length - 1 : prev - 1
+              )
+            }
+          >
+            <FaArrowAltCircleLeft />
+          </button>
+          <img
+            src={`http://localhost:8000${pin.images[currentImageIndex]}`}
+            alt={`Extra ${currentImageIndex + 1}`}
+            className="slider-image"
+          />
+          <button
+            className="slider-arrow right"
+            onClick={() =>
+              setCurrentImageIndex((prev) =>
+                prev === pin.images.length - 1 ? 0 : prev + 1
+              )
+            }
+          >
+            <FaArrowAltCircleRight />
+          </button>
+        </div>
+      )}
+
       <DetailMap
         lat={pin.latitude}
         lng={pin.longitude}
         category={pin.category}
       />
-      <div>
-        <h3>Add to List</h3>
-        <select
-          value={selectedListId}
-          onChange={(e) => setSelectedListId(e.target.value)}
+
+      <div className="pin-lists">
+        <div
+          className="pin-lists-header"
+          onClick={() => setShowListFields((prev) => !prev)}
         >
-          <option value="">Select a list</option>
-          {lists.map((list) => (
-            <option key={list._id} value={list._id}>
-              {list.name}
-            </option>
-          ))}
-        </select>
+          <h3>Add to List</h3>
+          <button className="plus-button">
+            <Plus size={32} />
+          </button>
+        </div>
 
-        <p style={{ marginTop: "1rem" }}>or create new list</p>
-        <input
-          type="text"
-          placeholder="New list name"
-          value={newListName}
-          onChange={(e) => setNewListName(e.target.value)}
-        />
+        {showListFields && (
+          <div className="pin-lists-fields">
+            <select
+              value={selectedListId}
+              onChange={(e) => setSelectedListId(e.target.value)}
+            >
+              <option value="">Select a list</option>
+              {lists.map((list) => (
+                <option key={list._id} value={list._id}>
+                  {list.name}
+                </option>
+              ))}
+            </select>
 
-        <button onClick={handleAddToList}>Add</button>
+            <p className="create-new-list">Create new list:</p>
+            <input
+              type="text"
+              placeholder="New list name"
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+            />
+            <button onClick={handleAddToList}>Add</button>
+          </div>
+        )}
       </div>
-      <div className="comment-area">
+      {editing && (
+        <div className="modal-overlay" onClick={() => setEditing(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <form
+              className="edit-form-vertical"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const username = localStorage.getItem("username");
+
+                const formData = new FormData();
+                formData.append("username", username);
+                formData.append("title", editForm.title);
+                formData.append("category", editForm.category);
+                formData.append("description", editForm.description);
+
+                const fileInput = e.target.elements.image;
+                if (fileInput && fileInput.files.length > 0) {
+                  formData.append("image", fileInput.files[0]);
+                }
+
+                if (extraImages.length > 0) {
+                  extraImages.forEach((img) => {
+                    formData.append("images", img);
+                  });
+                }
+
+                const res = await fetch(
+                  `http://localhost:8000/api/pins/${id}`,
+                  {
+                    method: "PUT",
+                    body: formData,
+                  }
+                );
+
+                const updated = await res.json();
+                setPin(updated);
+                setEditing(false);
+              }}
+            >
+              <label>
+                Title
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, title: e.target.value })
+                  }
+                />
+              </label>
+
+              <label>
+                Category
+                <input
+                  type="text"
+                  value={editForm.category}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, category: e.target.value })
+                  }
+                />
+              </label>
+
+              <label>
+                Description
+                <textarea
+                  rows="4"
+                  value={editForm.description}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, description: e.target.value })
+                  }
+                />
+              </label>
+
+              <label>
+                Cover Image
+                <input type="file" name="image" accept="image/*" />
+              </label>
+
+              <label>
+                Extra Images
+                <input
+                  type="file"
+                  name="images"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => setExtraImages([...e.target.files])}
+                />
+              </label>
+
+              <button className="delete-button" onClick={handleDeletePin}>
+                Delete Pin
+              </button>
+
+              <div className="edit-button-group">
+                <button type="submit">Save</button>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="cancel-button"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="list-comments-section">
         <h2>Comments</h2>
-        <form onSubmit={handleSubmit}>
+        <form className="list-comment-form" onSubmit={handleSubmit}>
           <textarea
-            name="comment"
-            id="comment"
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
+            placeholder="Share your thoughts..."
             required
           ></textarea>
           <button type="submit">Add Comment</button>
         </form>
-        <ul>
+
+        <ul className="list-comment-list">
           {comments.map((comment) => {
             const date = new Date(comment.createdAt);
             const formattedDate = date.toLocaleDateString("en-US", {
@@ -362,19 +421,25 @@ export default function PinDetail() {
               month: "long",
               day: "numeric",
             });
-
             const isOwner =
               localStorage.getItem("username") === comment.username;
             return (
-              <li key={comment._id}>
-                <p>{comment.username}</p>
+              <li key={comment._id} className="list-comment-item">
+                <div className="comment-header">
+                  <strong>{comment.username}</strong>
+                  <div className="comment-rigth-side">
+                    <span>{formattedDate}</span>
+                    {isOwner && (
+                      <button
+                        onClick={() => handleDelete(comment._id)}
+                        className="comment-delete-button"
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <p>{comment.text}</p>
-                <p>{formattedDate}</p>
-                {isOwner && (
-                  <button onClick={() => handleDelete(comment._id)}>
-                    Delete
-                  </button>
-                )}
               </li>
             );
           })}

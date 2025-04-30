@@ -1,11 +1,10 @@
+import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
 export default function PopUp({
   title,
   category,
   description,
-  createdBy,
   likes,
   dislikes,
-  id,
   imageUrl,
 }) {
   return (
@@ -34,12 +33,24 @@ export default function PopUp({
           />
         </div>
       )}
+      <span className="category">
+        <img
+          className="popup-icon"
+          src={`/assets/icons/${category}.svg`}
+          alt={category}
+        />
+
+        {category || "no category"}
+      </span>
       <p>{description || "no description"}</p>
-      <span className="category">{category || "no category"}</span>
-      <p className="created-by">Created by: {createdBy}</p>
       <div className="popup-like">
-        <span>👍 {likes}</span>
-        <span>👎 {dislikes}</span>
+        <span>
+          <IoIosThumbsUp style={{ width: "1rem", height: "auto" }} /> {likes}
+        </span>
+        <span>
+          <IoIosThumbsDown style={{ width: "1rem", height: "auto" }} />{" "}
+          {dislikes}
+        </span>
       </div>
     </div>
   );

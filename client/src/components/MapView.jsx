@@ -12,24 +12,13 @@ import { useNavigate } from "react-router-dom";
 export default function MapView({ selectedLocation }) {
   const mapRef = useRef(null);
   const markerRef = useRef(null);
+  const markersRef = useRef([]);
   const [map, setMap] = useState(null);
-  const [isAdding, setIsAdding] = useState(false); // 📍 Ekleme modu
+  const [isAdding, setIsAdding] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState(
     categories.map((cat) => cat.key)
   );
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (map && selectedLocation) {
-      map.flyTo({
-        center: [selectedLocation.lng, selectedLocation.lat],
-        zoom: 12,
-        speed: 1.5,
-        curve: 1, // animasyon eğriliği
-        essential: true,
-      });
-    }
-  }, [selectedLocation, map]);
 
   useEffect(() => {
     const instance = new maplibregl.Map({
@@ -41,6 +30,15 @@ export default function MapView({ selectedLocation }) {
       zoom: 4,
     });
     setMap(instance);
+
+    return () => instance.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!map) return;
+
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current = [];
 
     fetch("http://localhost:8000/api/pins")
       .then((res) => res.json())
@@ -64,7 +62,7 @@ export default function MapView({ selectedLocation }) {
           const el = getMarkerElement(pin.category);
           const marker = new maplibregl.Marker({ element: el })
             .setLngLat([pin.longitude, pin.latitude])
-            .addTo(instance);
+            .addTo(map);
 
           marker.getElement().addEventListener("mouseenter", () =>
             new maplibregl.Popup({
@@ -74,7 +72,7 @@ export default function MapView({ selectedLocation }) {
             })
               .setLngLat([pin.longitude, pin.latitude])
               .setHTML(html)
-              .addTo(instance)
+              .addTo(map)
           );
 
           marker.getElement().addEventListener("mouseleave", () => {
@@ -83,15 +81,22 @@ export default function MapView({ selectedLocation }) {
               popups[0].remove();
             }
           });
+
           marker.getElement().addEventListener("click", () => {
             if (!isAdding) {
               navigate(`/places/${pin._id}`);
             }
           });
+
+          markersRef.current.push(marker);
         });
       });
+  }, [selectedCategories, map, isAdding]);
 
-    instance.on("click", ({ lngLat }) => {
+  useEffect(() => {
+    if (!map) return;
+
+    map.on("click", ({ lngLat }) => {
       const { lng, lat } = lngLat;
 
       if (!isAdding) return;
@@ -99,6 +104,7 @@ export default function MapView({ selectedLocation }) {
       const formHTML = renderToString(<PinForm />);
 
       const popup = new maplibregl.Popup({ offset: 25 }).setHTML(formHTML);
+      popup.setLngLat([lng, lat]).addTo(map);
 
       popup.on("open", () => {
         const form = document.getElementById("pin-form");
@@ -124,7 +130,7 @@ export default function MapView({ selectedLocation }) {
             const el = getMarkerElement(newPin.category);
             const marker = new maplibregl.Marker({ element: el })
               .setLngLat([newPin.longitude, newPin.latitude])
-              .addTo(instance);
+              .addTo(map);
 
             const popupHTML = renderToString(
               <PopUp
@@ -147,38 +153,33 @@ export default function MapView({ selectedLocation }) {
             marker.getElement().addEventListener("mouseenter", () => {
               hoverPopup
                 .setLngLat([newPin.longitude, newPin.latitude])
-                .addTo(instance);
+                .addTo(map);
             });
 
             marker.getElement().addEventListener("mouseleave", () => {
               hoverPopup.remove();
             });
 
+            markersRef.current.push(marker);
+
             popup.remove();
-            setIsAdding(false); // buton reset
+            setIsAdding(false);
           } catch (err) {
             console.error("Pin eklenemedi:", err);
           }
         });
       });
-
-      popup.setLngLat([lng, lat]).addTo(instance);
     });
-
-    return () => instance.remove();
-  }, [selectedCategories, isAdding]);
-
-  useEffect(() => {
-    if (map) {
-      map.getCanvas().style.cursor = isAdding ? "crosshair" : "grab";
-    }
   }, [isAdding, map]);
 
   useEffect(() => {
     if (map && selectedLocation) {
       map.flyTo({
         center: [selectedLocation.lng, selectedLocation.lat],
-        zoom: 10,
+        zoom: 12,
+        speed: 1.5,
+        curve: 1,
+        essential: true,
       });
 
       if (markerRef.current) {
@@ -194,16 +195,20 @@ export default function MapView({ selectedLocation }) {
     }
   }, [selectedLocation, map]);
 
+  useEffect(() => {
+    if (map) {
+      map.getCanvas().style.cursor = isAdding ? "crosshair" : "grab";
+    }
+  }, [isAdding, map]);
+
   return (
     <div ref={mapRef} className="map-container">
       <CategoryFilter
         selectedCategories={selectedCategories}
         setSelectedCategories={setSelectedCategories}
+        isAdding={isAdding}
+        setIsAdding={setIsAdding}
       />
-
-      <div className="add-pin-button" onClick={() => setIsAdding(!isAdding)}>
-        {isAdding ? "❌ Cancel" : "📍 Add Pin"}
-      </div>
     </div>
   );
 }

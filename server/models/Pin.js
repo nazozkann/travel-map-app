@@ -6,6 +6,7 @@ const PinSchema = new mongoose.Schema(
     category: { type: String, required: true },
     description: String,
     imageUrl: String,
+    images: [{ type: String }],
     latitude: { type: Number, required: true },
     longitude: { type: Number, required: true },
     createdBy: { type: String, default: "anonim" },
