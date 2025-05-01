@@ -19,6 +19,15 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+router.get("/", async (req, res) => {
+  try {
+    const lists = await List.find();
+    res.json(lists);
+  } catch (err) {
+    res.status(500).json({ message: "Error while fetching lists" });
+  }
+});
+
 router.post("/upload-cover", upload.single("cover"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
