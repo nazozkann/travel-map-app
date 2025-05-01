@@ -126,11 +126,16 @@ export default function MapView({ selectedLocation }) {
 
           const username = localStorage.getItem("username") || "anonim";
 
+          const tagValues = Array.from(
+            ev.target.tags?.selectedOptions || [],
+            (opt) => opt.value
+          );
+
           const jsonBody = {
             title: ev.target.title.value,
             category: ev.target.category.value,
             description: ev.target.description.value,
-            tags: ev.target.tags.value,
+            tags: tagValues,
             latitude: lat.toString(),
             longitude: lng.toString(),
             createdBy: username,
@@ -145,6 +150,14 @@ export default function MapView({ selectedLocation }) {
                 body: JSON.stringify(jsonBody),
               }
             );
+
+            if (!res.ok) {
+              const errMsg = await res.text();
+              console.error("⛔ Sunucu cevabı:", errMsg);
+              alert("Pin kaydedilirken hata oluştu");
+              return;
+            }
+
             const newPin = await res.json();
 
             const el = getMarkerElement(newPin.category);

@@ -6,7 +6,6 @@ export default function PinForm() {
     title: "",
     category: "",
     description: "",
-    image: null,
     tags: [],
   });
 
@@ -30,49 +29,49 @@ export default function PinForm() {
     setFormData((prev) => ({ ...prev, tags: selected }));
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  // async function handleSubmit(e) {
+  //   e.preventDefault();
 
-    const data = new FormData();
-    data.append("title", formData.title);
-    data.append("category", formData.category);
-    data.append("description", formData.description);
-    data.append("createdBy", "testuser");
+  //   const data = new FormData();
+  //   data.append("title", formData.title);
+  //   data.append("category", formData.category);
+  //   data.append("description", formData.description);
+  //   data.append("createdBy", "testuser");
 
-    if (formData.tags.length) {
-      data.append("tags", JSON.stringify(formData.tags));
-    }
+  //   if (formData.tags.length) {
+  //     data.append("tags", JSON.stringify(formData.tags));
+  //   }
 
-    if (formData.image) {
-      data.append("image", formData.image);
-    }
+  //   if (formData.image) {
+  //     data.append("image", formData.image);
+  //   }
 
-    try {
-      const res = await fetch(import.meta.env.VITE_API_URL + "/api/pins", {
-        method: "POST",
-        body: data,
-      });
-      const result = await res.json();
-      console.log("✅ Pin eklendi:", result);
+  //   try {
+  //     const res = await fetch(import.meta.env.VITE_API_URL + "/api/pins", {
+  //       method: "POST",
+  //       body: data,
+  //     });
+  //     const result = await res.json();
+  //     console.log("✅ Pin eklendi:", result);
 
-      setFormData({
-        title: "",
-        category: "",
-        description: "",
-        image: null,
-        tags: [],
-      });
-    } catch (err) {
-      console.error("❌ Hata oluştu:", err);
-    }
-  }
+  //     setFormData({
+  //       title: "",
+  //       category: "",
+  //       description: "",
+  //       image: null,
+  //       tags: [],
+  //     });
+  //   } catch (err) {
+  //     console.error("❌ Hata oluştu:", err);
+  //   }
+  // }
 
   return (
     <form
       id="pin-form"
       className="pin-form"
-      onSubmit={handleSubmit}
-      encType="multipart/form-data"
+      // onSubmit={handleSubmit}
+      // encType="multipart/form-data"
     >
       <input
         type="text"
