@@ -26,7 +26,7 @@ export default function BestPlaces() {
   );
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/pins")
+    fetch(import.meta.env.VITE_API_URL + "/api/pins")
       .then((res) => res.json())
       .then((data) => {
         const sorted = data
@@ -159,7 +159,7 @@ export default function BestPlaces() {
               {list.coverImage && (
                 <div className="places-card-img">
                   <img
-                    src={`http://localhost:8000${list.coverImage}`}
+                    src={import.meta.env.VITE_API_URL + `${list.coverImage}`}
                     alt={list.name}
                   />
                 </div>

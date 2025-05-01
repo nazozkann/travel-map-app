@@ -74,8 +74,8 @@ export default function ListDetail() {
 
   useEffect(() => {
     const endpoint = isShared
-      ? `http://localhost:8000/api/lists/share/${listId}`
-      : `http://localhost:8000/api/lists/id/${listId}`;
+      ? import.meta.env.VITE_API_URL + `/api/lists/share/${listId}`
+      : import.meta.env.VITE_API_URL + `/api/lists/id/${listId}`;
 
     fetch(endpoint)
       .then((r) => r.json())
@@ -89,7 +89,7 @@ export default function ListDetail() {
     const pinId = searchParams.get("pin");
     if (!pinId || addedRef.current) return;
 
-    fetch(`http://localhost:8000/api/lists/${listId}/add-pin`, {
+    fetch(import.meta.env.VITE_API_URL + `/api/lists/${listId}/add-pin`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -107,7 +107,7 @@ export default function ListDetail() {
   }, [listId, searchParams, navigate, isShared]);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/lists/${listId}/comments`)
+    fetch(import.meta.env.VITE_API_URL + `/api/lists/${listId}/comments`)
       .then((res) => res.json())
       .then((data) => setListComments(data))
       .catch((err) => console.error("List comments fetch error:", err));
@@ -121,7 +121,7 @@ export default function ListDetail() {
   async function handleRemovePin(pinId) {
     const username = localStorage.getItem("username");
     const res = await fetch(
-      `http://localhost:8000/api/lists/${listId}/remove-pin`,
+      import.meta.env.VITE_API_URL + `/api/lists/${listId}/remove-pin`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -145,7 +145,7 @@ export default function ListDetail() {
 
     try {
       const res = await fetch(
-        `http://localhost:8000/api/lists/${listId}/comments`,
+        import.meta.env.VITE_API_URL + `/api/lists/${listId}/comments`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -171,7 +171,8 @@ export default function ListDetail() {
 
     try {
       const res = await fetch(
-        `http://localhost:8000/api/lists/${listId}/comments/${commentId}`,
+        import.meta.env.VITE_API_URL +
+          `/api/lists/${listId}/comments/${commentId}`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -198,7 +199,7 @@ export default function ListDetail() {
     const username = localStorage.getItem("username");
     try {
       const res = await fetch(
-        `http://localhost:8000/api/lists/${listId}/like`,
+        import.meta.env.VITE_API_URL + `/api/lists/${listId}/like`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -222,7 +223,8 @@ export default function ListDetail() {
 
   async function handleSendCollabRequest() {
     const username = localStorage.getItem("username");
-    const endpoint = `http://localhost:8000/api/lists/${listId}/request-collab`;
+    const endpoint =
+      import.meta.env.VITE_API_URL + `/api/lists/${listId}/request-collab`;
     console.log("👇 Sending collab request to:", endpoint);
 
     try {
@@ -257,7 +259,7 @@ export default function ListDetail() {
       formData.append("cover", coverImageFile);
 
       const uploadRes = await fetch(
-        "http://localhost:8000/api/lists/upload-cover",
+        import.meta.env.VITE_API_URL + "/api/lists/upload-cover",
         {
           method: "POST",
           body: formData,
@@ -267,14 +269,17 @@ export default function ListDetail() {
       updatedForm.coverImage = uploadData.filePath;
     }
 
-    const res = await fetch(`http://localhost:8000/api/lists/${listId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...updatedForm,
-        username,
-      }),
-    });
+    const res = await fetch(
+      import.meta.env.VITE_API_URL + `/api/lists/${listId}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...updatedForm,
+          username,
+        }),
+      }
+    );
 
     const updated = await res.json();
     setList(updated);
@@ -291,7 +296,10 @@ export default function ListDetail() {
 
       {list.coverImage && (
         <div className="cover-image-container">
-          <img src={`http://localhost:8000${list.coverImage}`} alt="Cover" />
+          <img
+            src={import.meta.env.VITE_API_URL + `${list.coverImage}`}
+            alt="Cover"
+          />
         </div>
       )}
 

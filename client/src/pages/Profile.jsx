@@ -29,20 +29,22 @@ export default function Profile() {
   useEffect(() => {
     if (!username) return;
 
-    fetch(`http://localhost:8000/api/users/${username}/pins`)
+    fetch(import.meta.env.VITE_API_URL + `/api/users/${username}/pins`)
       .then((res) => res.json())
       .then(setPins);
 
-    fetch(`http://localhost:8000/api/users/${username}/liked`)
+    fetch(import.meta.env.VITE_API_URL + `/api/users/${username}/liked`)
       .then((res) => res.json())
       .then(setLikedPins);
 
-    fetch(`http://localhost:8000/api/lists/${username}`)
+    fetch(import.meta.env.VITE_API_URL + `/api/lists/${username}`)
       .then((res) => res.json())
       .then(setUserLists)
       .catch((err) => console.error("Liste çekilemedi:", err));
 
-    fetch(`http://localhost:8000/api/lists/collab-requests/${username}`)
+    fetch(
+      import.meta.env.VITE_API_URL + `/api/lists/collab-requests/${username}`
+    )
       .then((res) => res.json())
       .then(setCollabRequests)
       .catch((err) => console.error("İstekler alınamadı:", err));
@@ -51,7 +53,7 @@ export default function Profile() {
   useEffect(() => {
     if (!username) return;
 
-    fetch(`http://localhost:8000/api/lists/notifications/${username}`)
+    fetch(import.meta.env.VITE_API_URL + `/api/lists/notifications/${username}`)
       .then((res) => res.json())
       .then((data) => setNotifications(data))
       .catch((err) => console.error("Bildirimler alınamadı:", err));
@@ -70,7 +72,7 @@ export default function Profile() {
   async function handleCollabDecision(listId, requesterUsername, decision) {
     try {
       const res = await fetch(
-        `http://localhost:8000/api/lists/${listId}/collab-response`,
+        import.meta.env.VITE_API_URL + `/api/lists/${listId}/collab-response`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -102,7 +104,7 @@ export default function Profile() {
   async function handleMarkAsRead(listId) {
     try {
       const res = await fetch(
-        "http://localhost:8000/api/lists/notifications/mark-read",
+        import.meta.env.VITE_API_URL + "/api/lists/notifications/mark-read",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -320,7 +322,7 @@ export default function Profile() {
                   </div>
                   <div className="profile-list-right">
                     <img
-                      src={`http://localhost:8000${list.coverImage}`}
+                      src={import.meta.env.VITE_API_URL + `${list.coverImage}`}
                       alt={list.name}
                     />
                   </div>

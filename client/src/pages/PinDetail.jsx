@@ -29,7 +29,7 @@ export default function PinDetail() {
   useEffect(() => {
     const username = localStorage.getItem("username");
     if (username) {
-      fetch(`http://localhost:8000/api/lists/${username}`)
+      fetch(import.meta.env.VITE_API_URL + `/api/lists/${username}`)
         .then((res) => res.json())
         .then((data) => setLists(data));
     }
@@ -47,24 +47,27 @@ export default function PinDetail() {
   }, [pin]);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/pins/${id}`)
+    fetch(import.meta.env.VITE_API_URL + `/api/pins/${id}`)
       .then((res) => res.json())
       .then((data) => setPin(data));
   }, [id]);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/api/comments/${id}`)
+    fetch(import.meta.env.VITE_API_URL + `/api/comments/${id}`)
       .then((res) => res.json())
       .then((data) => setComments(data));
   }, [id]);
 
   async function handleLike() {
     const username = localStorage.getItem("username");
-    const res = await fetch(`http://localhost:8000/api/pins/${id}/like`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
-    });
+    const res = await fetch(
+      import.meta.env.VITE_API_URL + `/api/pins/${id}/like`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      }
+    );
     const data = await res.json();
     if (!res.ok) {
       alert(data.message);
@@ -75,11 +78,14 @@ export default function PinDetail() {
 
   async function handleDislike() {
     const username = localStorage.getItem("username");
-    const res = await fetch(`http://localhost:8000/api/pins/${id}/dislike`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username }),
-    });
+    const res = await fetch(
+      import.meta.env.VITE_API_URL + `/api/pins/${id}/dislike`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      }
+    );
     const data = await res.json();
     if (!res.ok) {
       alert(data.message);
@@ -92,7 +98,7 @@ export default function PinDetail() {
     const username = localStorage.getItem("username");
     try {
       const res = await fetch(
-        `http://localhost:8000/api/comments/${commentId}`,
+        import.meta.env.VITE_API_URL + `/api/comments/${commentId}`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -117,11 +123,14 @@ export default function PinDetail() {
     if (!confirmDelete) return;
     const username = localStorage.getItem("username");
     try {
-      const res = await fetch(`http://localhost:8000/api/pins/${pin._id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
-      });
+      const res = await fetch(
+        import.meta.env.VITE_API_URL + `/api/pins/${pin._id}`,
+        {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username }),
+        }
+      );
       const data = await res.json();
       if (res.ok) {
         alert("Pin deleted!");
@@ -138,7 +147,7 @@ export default function PinDetail() {
   async function handleSubmit(e) {
     e.preventDefault();
     const username = localStorage.getItem("username") || "anonymous";
-    const res = await fetch("http://localhost:8000/api/comments", {
+    const res = await fetch(import.meta.env.VITE_API_URL + "/api/comments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -159,7 +168,7 @@ export default function PinDetail() {
     try {
       let listIdToUse = selectedListId;
       if (!listIdToUse && newListName) {
-        const res = await fetch("http://localhost:8000/api/lists", {
+        const res = await fetch(import.meta.env.VITE_API_URL + "/api/lists", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -244,7 +253,9 @@ export default function PinDetail() {
             <FaArrowAltCircleLeft />
           </button>
           <img
-            src={`http://localhost:8000${pin.images[currentImageIndex]}`}
+            src={
+              import.meta.env.VITE_API_URL + `${pin.images[currentImageIndex]}`
+            }
             alt={`Extra ${currentImageIndex + 1}`}
             className="slider-image"
           />
@@ -333,7 +344,7 @@ export default function PinDetail() {
                 }
 
                 const res = await fetch(
-                  `http://localhost:8000/api/pins/${id}`,
+                  import.meta.env.VITE_API_URL + `/api/pins/${id}`,
                   {
                     method: "PUT",
                     body: formData,
