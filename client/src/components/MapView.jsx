@@ -118,7 +118,9 @@ export default function MapView({ selectedLocation }) {
       popup.setLngLat([lng, lat]).addTo(map);
 
       popup.on("open", () => {
-        const form = document.getElementById("pin-form");
+        // const form = document.getElementById("pin-form");
+        // if (!form) return;
+        const form = popup.getElement().querySelector("#pin-form");
         if (!form) return;
 
         form.addEventListener("submit", async (ev) => {
