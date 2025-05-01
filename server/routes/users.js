@@ -2,6 +2,16 @@ const express = require("express");
 const router = express.Router();
 const Pin = require("../models/Pin");
 const Comment = require("../models/Comment");
+const User = require("../models/User");
+
+router.get("/", async (req, res) => {
+  try {
+    const users = await User.find();
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Error while fetching users" });
+  }
+});
 
 router.get("/:username/pins", async (req, res) => {
   try {
