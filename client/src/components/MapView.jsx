@@ -120,7 +120,10 @@ export default function MapView({ selectedLocation }) {
       popup.on("open", () => {
         // const form = document.getElementById("pin-form");
         // if (!form) return;
-        const form = popup.getElement().querySelector("#pin-form");
+        const form = popup
+          .getElement() // <div class="maplibregl-popup">
+          .querySelector(".maplibregl-popup-content #pin-form"); // <form id="pin-form">
+
         if (!form) return;
 
         form.addEventListener("submit", async (ev) => {
@@ -129,7 +132,7 @@ export default function MapView({ selectedLocation }) {
           const username = localStorage.getItem("username") || "anonim";
 
           const tagValues = Array.from(
-            form.querySelector('[name="tags"]')?.selectedOptions || [],
+            form.querySelector('select[name="tags"]').selectedOptions,
             (o) => o.value
           );
 
@@ -138,8 +141,8 @@ export default function MapView({ selectedLocation }) {
             category: ev.target.category.value,
             description: ev.target.description.value,
             tags: tagValues,
-            latitude: lat.toString(),
-            longitude: lng.toString(),
+            latitude: lat,
+            longitude: lng,
             createdBy: username,
           };
 
