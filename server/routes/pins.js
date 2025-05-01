@@ -4,6 +4,7 @@ const path = require("path");
 const router = express.Router();
 const Pin = require("../models/Pin");
 const cloudinary = require("../config/cloudinary");
+const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, "uploads/"),
@@ -85,8 +86,11 @@ router.put("/:id", uploadFields, async (req, res) => {
 
     if (req.files?.image?.length) {
       const result = await cloudinary.uploader.upload(req.files.image[0].path);
+      console.log("CLOUDINARY RESULT:", result);
       pin.imageUrl = result.secure_url;
       fs.unlinkSync(req.files.image[0].path);
+    } else {
+      pin.imageUrl = pin.imageUrl;
     }
 
     if (req.files?.images?.length) {
