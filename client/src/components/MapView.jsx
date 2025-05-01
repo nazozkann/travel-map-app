@@ -125,17 +125,24 @@ export default function MapView({ selectedLocation }) {
           ev.preventDefault();
 
           const username = localStorage.getItem("username") || "anonim";
-          const formData = new FormData(ev.target);
-          formData.append("latitude", lat.toString());
-          formData.append("longitude", lng.toString());
-          formData.append("createdBy", username);
+
+          const jsonBody = {
+            title: ev.target.title.value,
+            category: ev.target.category.value,
+            description: ev.target.description.value,
+            tags: ev.target.tags.value,
+            latitude: lat.toString(),
+            longitude: lng.toString(),
+            createdBy: username,
+          };
 
           try {
             const res = await fetch(
               import.meta.env.VITE_API_URL + "/api/pins",
               {
                 method: "POST",
-                body: formData,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(jsonBody),
               }
             );
             const newPin = await res.json();
