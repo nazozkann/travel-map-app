@@ -5,6 +5,7 @@ const Pin = require("../models/Pin");
 const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
+const cloudinary = require("../config/cloudinary");
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -28,12 +29,18 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/upload-cover", upload.single("cover"), (req, res) => {
+router.post("/upload-cover", upload.single("cover"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
-  const filePath = `/uploads/${req.file.filename}`;
-  res.status(200).json({ filePath });
+
+  try {
+    const result = await cloudinary.uploader.upload(req.file.path);
+    res.status(200).json({ filePath: result.secure_url });
+  } catch (err) {
+    console.error("❌ Cover upload error:", err);
+    res.status(500).json({ message: "Cover image upload failed" });
+  }
 });
 
 router.get("/all", async (req, res) => {
