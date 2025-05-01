@@ -3,6 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const router = express.Router();
 const Pin = require("../models/Pin");
+const cloudinary = require("../config/cloudinary");
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, "uploads/"),
@@ -31,12 +32,21 @@ router.post("/", uploadFields, async (req, res) => {
       createdBy,
     } = req.body;
 
-    const imageUrl = req.files?.image?.length
-      ? `/uploads/${req.files.image[0].filename}`
-      : "";
-    const images = req.files?.images?.length
-      ? req.files.images.map((f) => `/uploads/${f.filename}`)
-      : [];
+    let imageUrl = "";
+    if (req.files?.image?.length) {
+      const result = await cloudinary.uploader.upload(req.files.image[0].path);
+      imageUrl = result.secure_url;
+    }
+
+    let images = [];
+    if (req.files?.images?.length) {
+      images = await Promise.all(
+        req.files.images.map(async (file) => {
+          const result = await cloudinary.uploader.upload(file.path);
+          return result.secure_url;
+        })
+      );
+    }
 
     const newPin = new Pin({
       title,
@@ -74,12 +84,20 @@ router.put("/:id", uploadFields, async (req, res) => {
     pin.tags = req.body.tags ? JSON.parse(req.body.tags) : pin.tags;
 
     if (req.files?.image?.length) {
-      pin.imageUrl = `/uploads/${req.files.image[0].filename}`;
+      const result = await cloudinary.uploader.upload(req.files.image[0].path);
+      pin.imageUrl = result.secure_url;
+      fs.unlinkSync(req.files.image[0].path);
     }
 
     if (req.files?.images?.length) {
-      const newPaths = req.files.images.map((f) => `/uploads/${f.filename}`);
-      pin.images = [...(pin.images || []), ...newPaths];
+      const newImageUrls = await Promise.all(
+        req.files.images.map(async (file) => {
+          const result = await cloudinary.uploader.upload(file.path);
+          fs.unlinkSync(file.path);
+          return result.secure_url;
+        })
+      );
+      pin.images = [...(pin.images || []), ...newImageUrls];
     }
 
     const updated = await pin.save();
@@ -180,12 +198,22 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.post("/upload-images", upload.array("images", 10), (req, res) => {
+router.post("/upload-images", upload.array("images", 10), async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: "No files uploaded" });
   }
 
-  const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
-  res.status(200).json({ images: imagePaths });
+  try {
+    const imageUrls = await Promise.all(
+      req.files.map(async (file) => {
+        const result = await cloudinary.uploader.upload(file.path);
+        fs.unlinkSync(file.path);
+        return result.secure_url;
+      })
+    );
+    res.status(200).json({ images: imageUrls });
+  } catch (err) {
+    res.status(500).json({ message: "Error while uploading images" });
+  }
 });
 module.exports = router;
