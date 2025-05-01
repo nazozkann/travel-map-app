@@ -70,6 +70,7 @@ export default function PinForm() {
     <form
       id="pin-form"
       className="pin-form"
+      action="javascript:void(0);"
       // onSubmit={handleSubmit}
       // encType="multipart/form-data"
     >
