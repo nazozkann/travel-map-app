@@ -10,7 +10,9 @@ router.post("/", async (req, res) => {
     const {
       title,
       category,
-      tags,
+      tags = Array.isArray(req.body.tags)
+   ? req.body.tags
+   : JSON.parse(req.body.tags || '[]');,
       description,
       latitude,
       longitude,

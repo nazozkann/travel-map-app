@@ -129,8 +129,8 @@ export default function MapView({ selectedLocation }) {
           const username = localStorage.getItem("username") || "anonim";
 
           const tagValues = Array.from(
-            ev.target.tags?.selectedOptions || [],
-            (opt) => opt.value
+            form.querySelector('[name="tags"]')?.selectedOptions || [],
+            (o) => o.value
           );
 
           const jsonBody = {
