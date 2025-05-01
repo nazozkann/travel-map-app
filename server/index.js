@@ -13,6 +13,8 @@ const corsOptions = {
   credentials: true,
 };
 
+app.use(express.json());
+
 app.use(cors(corsOptions));
 
 // app.use("/uploads", express.static(path.join(__dirname, "uploads")));
