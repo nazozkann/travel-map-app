@@ -351,12 +351,9 @@ export default function PinDetail() {
                     extraImages.map(async (img) => {
                       const formData = new FormData();
                       formData.append("file", img);
-                      formData.append(
-                        "upload_preset",
-                        "<CLOUDINARY_UPLOAD_PRESET>"
-                      );
+                      formData.append("upload_preset", uploadPreset);
                       const res = await fetch(
-                        `https://api.cloudinary.com/v1_1/<CLOUDINARY_CLOUD_NAME>/image/upload`,
+                        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
                         {
                           method: "POST",
                           body: formData,
@@ -466,7 +463,11 @@ export default function PinDetail() {
                 />
               </label>
 
-              <button className="delete-button" onClick={handleDeletePin}>
+              <button
+                type="button"
+                className="delete-button"
+                onClick={handleDeletePin}
+              >
                 Delete Pin
               </button>
 
