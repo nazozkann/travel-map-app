@@ -3,23 +3,10 @@ const router = express.Router();
 const List = require("../models/List");
 const Pin = require("../models/Pin");
 const mongoose = require("mongoose");
-const multer = require("multer");
 const path = require("path");
 const cloudinary = require("../config/cloudinary");
-const fs = require("fs");
 
 const ObjectId = mongoose.Types.ObjectId;
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({ storage });
 
 router.get("/", async (req, res) => {
   try {
@@ -30,19 +17,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/upload-cover", upload.single("cover"), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
+router.post("/upload-cover", async (req, res) => {
+  const { coverImageUrl } = req.body;
+  if (!coverImageUrl) {
+    return res.status(400).json({ message: "No cover image URL provided" });
   }
-
-  try {
-    const result = await cloudinary.uploader.upload(req.file.path);
-    fs.unlinkSync(req.file.path);
-    res.status(200).json({ filePath: result.secure_url });
-  } catch (err) {
-    console.error("❌ Cover upload error:", err);
-    res.status(500).json({ message: "Cover image upload failed" });
-  }
+  res.status(200).json({ filePath: coverImageUrl });
 });
 
 router.get("/all", async (req, res) => {
@@ -156,14 +136,6 @@ router.put("/:listId", async (req, res) => {
     list.name = name || list.name;
     list.description = description || list.description;
     list.coverImage = coverImage || list.coverImage;
-
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path);
-      fs.unlinkSync(req.file.path);
-      list.coverImage = result.secure_url;
-    }
-
-    list.coverImage = req.body.coverImage || list.coverImage;
 
     const updated = await list.save();
     res.status(200).json(updated);
