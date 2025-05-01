@@ -6,15 +6,16 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const path = require("path");
 const cloudinary = require("../config/cloudinary");
+const fs = require("fs");
 
 const ObjectId = mongoose.Types.ObjectId;
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); // uploads klasörüne kaydediyoruz
+    cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // benzersiz isim ver
+    cb(null, Date.now() + path.extname(file.originalname));
   },
 });
 
@@ -36,6 +37,7 @@ router.post("/upload-cover", upload.single("cover"), async (req, res) => {
 
   try {
     const result = await cloudinary.uploader.upload(req.file.path);
+    fs.unlinkSync(req.file.path);
     res.status(200).json({ filePath: result.secure_url });
   } catch (err) {
     console.error("❌ Cover upload error:", err);
@@ -154,6 +156,14 @@ router.put("/:listId", async (req, res) => {
     list.name = name || list.name;
     list.description = description || list.description;
     list.coverImage = coverImage || list.coverImage;
+
+    if (req.file) {
+      const result = await cloudinary.uploader.upload(req.file.path);
+      fs.unlinkSync(req.file.path);
+      list.coverImage = result.secure_url;
+    }
+
+    list.coverImage = req.body.coverImage || list.coverImage;
 
     const updated = await list.save();
     res.status(200).json(updated);
