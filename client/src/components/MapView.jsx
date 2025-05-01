@@ -42,7 +42,7 @@ export default function MapView({ selectedLocation }) {
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
 
-    fetch("http://localhost:8000/api/pins")
+    fetch(import.meta.env.VITE_API_URL + "/api/pins")
       .then((res) => res.json())
       .then((pins) => {
         pins.forEach((pin) => {
@@ -131,10 +131,13 @@ export default function MapView({ selectedLocation }) {
           formData.append("createdBy", username);
 
           try {
-            const res = await fetch("http://localhost:8000/api/pins", {
-              method: "POST",
-              body: formData,
-            });
+            const res = await fetch(
+              import.meta.env.VITE_API_URL + "/api/pins",
+              {
+                method: "POST",
+                body: formData,
+              }
+            );
             const newPin = await res.json();
 
             const el = getMarkerElement(newPin.category);

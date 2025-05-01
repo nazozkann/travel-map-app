@@ -16,7 +16,10 @@ export default function Navbar({ setLocation }) {
       setIsLoggedIn(true);
       setUsername(storedUsername);
 
-      fetch(`http://localhost:8000/api/lists/notifications/${storedUsername}`)
+      fetch(
+        import.meta.env.VITE_API_URL +
+          `/api/lists/notifications/${storedUsername}`
+      )
         .then((res) => res.json())
         .then((data) => {
           if (data.length > 0) {
@@ -29,7 +32,10 @@ export default function Navbar({ setLocation }) {
           console.error("Notification fetch failed:", err);
         });
 
-      fetch(`http://localhost:8000/api/lists/collab-requests/${storedUsername}`)
+      fetch(
+        import.meta.env.VITE_API_URL +
+          `/api/lists/collab-requests/${storedUsername}`
+      )
         .then((res) => res.json())
         .then((data) => {
           if (data.length > 0) {
