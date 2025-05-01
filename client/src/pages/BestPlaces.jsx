@@ -39,12 +39,12 @@ export default function BestPlaces() {
         setPins(sorted);
       });
 
-    fetch("http://localhost:8000/api/lists/all")
+    fetch(import.meta.env.VITE_API_URL + "/api/lists/all")
       .then((res) => res.json())
       .then((data) => {
         const sorted = data
           .slice()
-          .sort((a, b) => (b.pins?.length || 0) - (a.pins?.length || 0)); // En çok pinli listeler en üstte
+          .sort((a, b) => (b.pins?.length || 0) - (a.pins?.length || 0));
         setLists(sorted);
       });
     setView("places");
