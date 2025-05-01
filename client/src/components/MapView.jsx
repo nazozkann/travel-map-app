@@ -9,6 +9,7 @@ import CategoryFilter from "./CategoryFilter";
 import { categories } from "../utils/categories";
 import { tags } from "../utils/tags";
 import { useNavigate } from "react-router-dom";
+import ReactDOM from "react-dom/client";
 
 export default function MapView({ selectedLocation }) {
   const mapRef = useRef(null);
@@ -113,97 +114,116 @@ export default function MapView({ selectedLocation }) {
       const { lng, lat } = lngLat;
       if (!isAdding) return;
 
-      const formHTML = renderToString(<PinForm />);
-      const popup = new maplibregl.Popup({ offset: 25 }).setHTML(formHTML);
+      // const formHTML = renderToString(<PinForm />);
+      const container = document.createElement("div");
+      const popup = new maplibregl.Popup({ offset: 25 }).setDOMContent(
+        container
+      );
       popup.setLngLat([lng, lat]).addTo(map);
 
-      popup.on("open", () => {
-        // const form = document.getElementById("pin-form");
-        // if (!form) return;
-        const form = popup
-          .getElement() // <div class="maplibregl-popup">
-          .querySelector(".maplibregl-popup-content #pin-form"); // <form id="pin-form">
-
-        if (!form) return;
-
-        form.addEventListener("submit", async (ev) => {
-          ev.preventDefault();
-
-          const username = localStorage.getItem("username") || "anonim";
-
-          const tagValues = Array.from(
-            form.querySelector('select[name="tags"]').selectedOptions,
-            (o) => o.value
-          );
-
-          const jsonBody = {
-            title: ev.target.title.value,
-            category: ev.target.category.value,
-            description: ev.target.description.value,
-            tags: tagValues,
-            latitude: lat,
-            longitude: lng,
-            createdBy: username,
-          };
-
-          try {
-            const res = await fetch(
-              import.meta.env.VITE_API_URL + "/api/pins",
-              {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(jsonBody),
-              }
-            );
-
-            if (!res.ok) {
-              const errMsg = await res.text();
-              console.error("⛔ Sunucu cevabı:", errMsg);
-              alert("Pin kaydedilirken hata oluştu");
-              return;
-            }
-
-            const newPin = await res.json();
-
+      ReactDOM.createRoot(container).render(
+        <PinForm
+          lat={lat}
+          lng={lng}
+          onSuccess={(newPin) => {
+            // pin eklenince popup kapat, marker ekle
             const el = getMarkerElement(newPin.category);
             const marker = new maplibregl.Marker({ element: el })
               .setLngLat([newPin.longitude, newPin.latitude])
               .addTo(map);
-
-            const popupHTML = renderToString(
-              <PopUp
-                id={newPin._id}
-                title={newPin.title}
-                category={newPin.category}
-                createdBy={newPin.createdBy}
-                description={newPin.description}
-                likes={newPin.likes}
-                dislikes={newPin.dislikes}
-              />
-            );
-            const hoverPopup = new maplibregl.Popup({
-              offset: 25,
-              closeButton: false,
-              closeOnClick: false,
-            }).setHTML(popupHTML);
-
-            marker.getElement().addEventListener("mouseenter", () => {
-              hoverPopup
-                .setLngLat([newPin.longitude, newPin.latitude])
-                .addTo(map);
-            });
-            marker.getElement().addEventListener("mouseleave", () => {
-              hoverPopup.remove();
-            });
-
-            markersRef.current.push(marker);
             popup.remove();
             setIsAdding(false);
-          } catch (err) {
-            console.error("Pin eklenemedi:", err);
-          }
-        });
-      });
+          }}
+        />
+      );
+
+      // popup.on("open", () => {
+      //   // const form = document.getElementById("pin-form");
+      //   // if (!form) return;
+      //   const form = popup
+      //     .getElement() // <div class="maplibregl-popup">
+      //     .querySelector(".maplibregl-popup-content #pin-form"); // <form id="pin-form">
+
+      //   if (!form) return;
+
+      //   form.addEventListener("submit", async (ev) => {
+      //     ev.preventDefault();
+
+      //     const username = localStorage.getItem("username") || "anonim";
+
+      //     const tagValues = Array.from(
+      //       form.querySelector('select[name="tags"]').selectedOptions,
+      //       (o) => o.value
+      //     );
+
+      //     const jsonBody = {
+      //       title: ev.target.title.value,
+      //       category: ev.target.category.value,
+      //       description: ev.target.description.value,
+      //       tags: tagValues,
+      //       latitude: lat,
+      //       longitude: lng,
+      //       createdBy: username,
+      //     };
+
+      //     try {
+      //       const res = await fetch(
+      //         import.meta.env.VITE_API_URL + "/api/pins",
+      //         {
+      //           method: "POST",
+      //           headers: { "Content-Type": "application/json" },
+      //           body: JSON.stringify(jsonBody),
+      //         }
+      //       );
+
+      //       if (!res.ok) {
+      //         const errMsg = await res.text();
+      //         console.error("⛔ Sunucu cevabı:", errMsg);
+      //         alert("Pin kaydedilirken hata oluştu");
+      //         return;
+      //       }
+
+      //       const newPin = await res.json();
+
+      //       const el = getMarkerElement(newPin.category);
+      //       const marker = new maplibregl.Marker({ element: el })
+      //         .setLngLat([newPin.longitude, newPin.latitude])
+      //         .addTo(map);
+
+      //       const popupHTML = renderToString(
+      //         <PopUp
+      //           id={newPin._id}
+      //           title={newPin.title}
+      //           category={newPin.category}
+      //           createdBy={newPin.createdBy}
+      //           description={newPin.description}
+      //           likes={newPin.likes}
+      //           dislikes={newPin.dislikes}
+      //         />
+      //       );
+      //       const hoverPopup = new maplibregl.Popup({
+      //         offset: 25,
+      //         closeButton: false,
+      //         closeOnClick: false,
+      //       }).setHTML(popupHTML);
+
+      //       marker.getElement().addEventListener("mouseenter", () => {
+      //         hoverPopup
+      //           .setLngLat([newPin.longitude, newPin.latitude])
+      //           .addTo(map);
+      //       });
+      //       marker.getElement().addEventListener("mouseleave", () => {
+      //         hoverPopup.remove();
+      //       });
+
+      //       markersRef.current.push(marker);
+      //       popup.remove();
+      //       setIsAdding(false);
+      //     } catch (err) {
+      //       console.error("Pin eklenemedi:", err);
+      //     }
+      //   });
+      // });
     };
 
     map.on("click", handleMapClick);

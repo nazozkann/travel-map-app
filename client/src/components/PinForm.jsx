@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "../styles/Main.css";
 
-export default function PinForm() {
+export default function PinForm({ lat, lng, onSuccess }) {
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -27,6 +27,37 @@ export default function PinForm() {
   function handleTagsChange(e) {
     const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
     setFormData((prev) => ({ ...prev, tags: selected }));
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const username = localStorage.getItem("username") || "anonim";
+
+    const jsonBody = {
+      title: formData.title,
+      category: formData.category,
+      description: formData.description,
+      tags: formData.tags,
+      latitude: lat.toString(),
+      longitude: lng.toString(),
+      createdBy: username,
+    };
+
+    const res = await fetch(import.meta.env.VITE_API_URL + "/api/pins", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(jsonBody),
+    });
+
+    if (!res.ok) {
+      const errMsg = await res.text();
+      console.error("⛔ Sunucu cevabı:", errMsg);
+      alert("Pin kaydedilirken hata oluştu");
+      return;
+    }
+
+    const newPin = await res.json();
+    onSuccess(newPin);
   }
 
   // async function handleSubmit(e) {
@@ -70,7 +101,7 @@ export default function PinForm() {
     <form
       id="pin-form"
       className="pin-form"
-      onSubmit={(e) => e.preventDefault()}
+      onSubmit={handleSubmit}
       // onSubmit={handleSubmit}
       // encType="multipart/form-data"
     >
