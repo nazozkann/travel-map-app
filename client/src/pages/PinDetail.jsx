@@ -6,6 +6,9 @@ import { Plus } from "lucide-react";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
 
+const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
 export default function PinDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -240,7 +243,7 @@ export default function PinDetail() {
         <span>{pin.dislikes}</span>
       </div>
 
-      {pin?.images && pin.images.length > 0 && (
+      {Array.isArray(pin.images) && pin.images.length > 0 && (
         <div className="extra-images-slider">
           <button
             className="slider-arrow left"
@@ -323,31 +326,63 @@ export default function PinDetail() {
                 e.preventDefault();
                 const username = localStorage.getItem("username");
 
-                const formData = new FormData();
-                formData.append("username", username);
-                formData.append("title", editForm.title);
-                formData.append("category", editForm.category);
-                formData.append("description", editForm.description);
-                if (editForm.tags.length) {
-                  formData.append("tags", JSON.stringify(editForm.tags));
-                }
+                let imageUrl = pin.imageUrl;
+                let extraImageUrls = [...(pin.images || [])];
 
                 const fileInput = e.target.elements.image;
                 if (fileInput && fileInput.files.length > 0) {
-                  formData.append("image", fileInput.files[0]);
+                  const file = fileInput.files[0];
+                  const formData = new FormData();
+                  formData.append("file", file);
+                  formData.append("upload_preset", uploadPreset);
+                  const res = await fetch(
+                    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+                    {
+                      method: "POST",
+                      body: formData,
+                    }
+                  );
+                  const data = await res.json();
+                  imageUrl = data.secure_url;
                 }
 
                 if (extraImages.length > 0) {
-                  extraImages.forEach((img) => {
-                    formData.append("images", img);
-                  });
+                  const uploads = await Promise.all(
+                    extraImages.map(async (img) => {
+                      const formData = new FormData();
+                      formData.append("file", img);
+                      formData.append(
+                        "upload_preset",
+                        "<CLOUDINARY_UPLOAD_PRESET>"
+                      );
+                      const res = await fetch(
+                        `https://api.cloudinary.com/v1_1/<CLOUDINARY_CLOUD_NAME>/image/upload`,
+                        {
+                          method: "POST",
+                          body: formData,
+                        }
+                      );
+                      const data = await res.json();
+                      return data.secure_url;
+                    })
+                  );
+                  extraImageUrls = [...extraImageUrls, ...uploads];
                 }
 
                 const res = await fetch(
                   import.meta.env.VITE_API_URL + `/api/pins/${id}`,
                   {
                     method: "PUT",
-                    body: formData,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      username,
+                      title: editForm.title,
+                      category: editForm.category,
+                      description: editForm.description,
+                      tags: editForm.tags,
+                      imageUrl,
+                      images: extraImageUrls,
+                    }),
                   }
                 );
 
