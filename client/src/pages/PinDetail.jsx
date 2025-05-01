@@ -256,9 +256,7 @@ export default function PinDetail() {
             <FaArrowAltCircleLeft />
           </button>
           <img
-            src={
-              import.meta.env.VITE_API_URL + `${pin.images[currentImageIndex]}`
-            }
+            src={pin.images[currentImageIndex]}
             alt={`Extra ${currentImageIndex + 1}`}
             className="slider-image"
           />
