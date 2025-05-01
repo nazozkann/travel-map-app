@@ -256,17 +256,20 @@ export default function ListDetail() {
 
     if (coverImageFile) {
       const formData = new FormData();
-      formData.append("cover", coverImageFile);
+      formData.append("file", coverImageFile);
+      formData.append(
+        "upload_preset",
+        import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+      );
 
       const uploadRes = await fetch(
-        import.meta.env.VITE_API_URL + "/api/lists/upload-cover",
-        {
-          method: "POST",
-          body: formData,
-        }
+        `https://api.cloudinary.com/v1_1/${
+          import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+        }/image/upload`,
+        { method: "POST", body: formData }
       );
       const uploadData = await uploadRes.json();
-      updatedForm.coverImage = uploadData.filePath;
+      updatedForm.coverImage = uploadData.secure_url;
     }
 
     const res = await fetch(
@@ -296,10 +299,7 @@ export default function ListDetail() {
 
       {list.coverImage && (
         <div className="cover-image-container">
-          <img
-            src={import.meta.env.VITE_API_URL + `${list.coverImage}`}
-            alt="Cover"
-          />
+          <img src={list.coverImage} alt="Cover" />
         </div>
       )}
 
