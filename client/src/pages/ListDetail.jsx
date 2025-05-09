@@ -306,7 +306,10 @@ export default function ListDetail() {
       <p>{list.description}</p>
 
       <div className="list-detail-bottom">
-        <p style={{ marginBottom: "1rem" }}>
+        <p
+          style={{ cursor: "pointer", marginBottom: "1rem" }}
+          onClick={() => navigate(`/profile/${list.createdBy}`)}
+        >
           Created by <strong>{list.createdBy}</strong>
         </p>
         <button onClick={handleLikeList}>
@@ -458,7 +461,12 @@ export default function ListDetail() {
             return (
               <li key={comment._id ?? index} className="list-comment-item">
                 <div className="comment-header">
-                  <strong>{comment.username}</strong>{" "}
+                  <strong
+                    onClick={() => navigate(`/profile/${comment.username}`)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    {comment.username}
+                  </strong>{" "}
                   <div className="comment-rigth-side">
                     <span>{formattedDate}</span>
                     {isOwner && (

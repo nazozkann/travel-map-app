@@ -223,7 +223,10 @@ export default function PinDetail() {
           <p>
             <strong>Category:</strong> {pin.category}
           </p>
-          <p>
+          <p
+            style={{ cursor: "pointer" }}
+            onClick={() => navigate(`/profile/${pin.createdBy}`)}
+          >
             <strong>By:</strong> {pin.createdBy}
           </p>
         </div>
