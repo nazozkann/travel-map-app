@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "../styles/Navbar.css";
 import SearchBar from "./SearchBar";
@@ -60,7 +60,7 @@ export default function Navbar({ setLocation }) {
         <Link to="/places">Selected</Link>
         {isLoggedIn ? (
           <div className="nav-profile-wrapper">
-            <Link to="/profile">Profile</Link>
+            <Link to={`/profile/${username}`}>Profile</Link>
             {hasNotifications && <span className="notification-dot" />}
           </div>
         ) : (

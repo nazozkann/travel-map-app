@@ -158,10 +158,7 @@ export default function BestPlaces() {
             >
               {list.coverImage && (
                 <div className="places-card-img">
-                  <img
-                    src={import.meta.env.VITE_API_URL + `${list.coverImage}`}
-                    alt={list.name}
-                  />
+                  <img src={list.coverImage} alt={list.name} />
                 </div>
               )}
               <div className="lists-card-header">

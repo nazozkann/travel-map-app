@@ -17,7 +17,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home location={location} />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile/:username" element={<Profile />} />
         <Route path="/places" element={<BestPlaces />} />
         <Route path="/places/:id" element={<PinDetail />} />
         <Route path="/lists/:listId" element={<ListDetail />} />

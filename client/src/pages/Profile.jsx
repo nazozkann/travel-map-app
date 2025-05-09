@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { CircleUserRound } from "lucide-react";
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
 import "../styles/Main.css";
@@ -15,17 +15,19 @@ export default function Profile() {
   const [notifications, setNotifications] = useState([]);
 
   const location = useLocation();
+  const { username: routeUsername } = useParams();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    const storedUsername = localStorage.getItem("username");
+    const localUsername = localStorage.getItem("username");
 
-    if (!token) {
+    if (!token && !routeUsername) {
       navigate("/auth");
     } else {
-      setUsername(storedUsername);
+      setUsername(routeUsername || localUsername);
     }
-  }, [navigate]);
+  }, [navigate, routeUsername]);
+
   useEffect(() => {
     if (!username) return;
 
@@ -140,9 +142,11 @@ export default function Profile() {
         ) : (
           <p>Loading...</p>
         )}
-        <button className="logout-button" onClick={handleLogout}>
-          Logout
-        </button>
+        {username === localStorage.getItem("username") && (
+          <button className="logout-button" onClick={handleLogout}>
+            Logout
+          </button>
+        )}
       </div>
       <hr />
 
@@ -321,10 +325,7 @@ export default function Profile() {
                     <p>{list.description}</p>
                   </div>
                   <div className="profile-list-right">
-                    <img
-                      src={import.meta.env.VITE_API_URL + `${list.coverImage}`}
-                      alt={list.name}
-                    />
+                    <img src={list.coverImage} alt={list.name} />
                   </div>
                 </li>
               ))}
