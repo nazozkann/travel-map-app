@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, use } from "react";
+import { useState, useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { renderToString } from "react-dom/server";
@@ -26,17 +26,26 @@ export default function MapView({ selectedLocation }) {
   const [showTags, setShowTags] = useState(false);
   const navigate = useNavigate();
 
+  const lightMapStyle = `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
+    import.meta.env.VITE_MAPTILER_API_KEY
+  }`;
+  const darkMapStyle = `https://api.maptiler.com/maps/0196bac3-e637-7c87-b191-32cc9b5b086a/style.json?key=${
+    import.meta.env.VITE_MAPTILER_API_KEY
+  }`;
+
   useEffect(() => {
     const savedState = JSON.parse(localStorage.getItem("mapViewState"));
+    const savedTheme = localStorage.getItem("theme");
+    const mapStyle = savedTheme === "dark" ? darkMapStyle : lightMapStyle;
     const instance = new maplibregl.Map({
       container: mapRef.current,
-      style: `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
-        import.meta.env.VITE_MAPTILER_API_KEY
-      }`,
+      style: mapStyle,
       center: savedState ? [savedState.lng, savedState.lat] : [18, 45], // default merkez
       zoom: savedState ? savedState.zoom : 4,
     });
     setMap(instance);
+
+    window.mapInstance = instance;
 
     return () => instance.remove();
   }, []);
@@ -155,7 +164,6 @@ export default function MapView({ selectedLocation }) {
           lat={lat}
           lng={lng}
           onSuccess={(newPin) => {
-            // pin eklenince popup kapat, marker ekle
             const el = getMarkerElement(newPin.category);
             const marker = new maplibregl.Marker({ element: el })
               .setLngLat([newPin.longitude, newPin.latitude])

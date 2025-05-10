@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -14,12 +14,11 @@ export default function Auth() {
         import.meta.env.VITE_API_URL + "/api/auth/login",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, password }),
         }
       );
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -31,33 +30,35 @@ export default function Auth() {
       localStorage.setItem("username", data.user.username);
       navigate("/");
     } catch (err) {
-      setError("An error occurred during login", err);
+      console.error("Login error:", err);
+      setError("Something went wrong. Please try again.");
     }
   }
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleLogin}>
+    <div className="auth-container">
+      <h2>Sign In</h2>
+      <form className="auth-form" onSubmit={handleLogin}>
         <input
           type="email"
-          placeholder="email"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
-        <br />
         <input
           type="password"
-          placeholder="password"
+          placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <br />
         <button type="submit">Login</button>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+        {error && <p className="error-text">{error}</p>}
       </form>
+      <p className="auth-toggle-text">
+        Don’t have an account? <Link to="/signup">Sign up here</Link>
+      </p>
     </div>
   );
 }

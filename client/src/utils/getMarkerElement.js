@@ -1,29 +1,19 @@
-import "../styles/Main.css";
-
 export default function getMarkerElement(category) {
   const el = document.createElement("div");
   el.className = "custom-marker";
 
-  switch (category) {
-    case "food-drink":
-      el.style.backgroundColor = "#f59d6b";
-      break;
-    case "cultural":
-      el.style.backgroundColor = "#7db8c5";
-      break;
-    case "accommodation":
-      el.style.backgroundColor = "#a6c9cd";
-      break;
-    case "entertainment":
-      el.style.backgroundColor = "#f26f5b";
-      break;
-    case "nature":
-      el.style.backgroundColor = "#92b883";
-      break;
-    case "other":
-    default:
-      el.style.backgroundColor = "#d2b5c2";
-  }
+  const rootStyles = getComputedStyle(document.documentElement);
+
+  const colorMap = {
+    "food-drink": rootStyles.getPropertyValue("--food-color"),
+    cultural: rootStyles.getPropertyValue("--cultural-color"),
+    accommodation: rootStyles.getPropertyValue("--hotels-color"),
+    entertainment: rootStyles.getPropertyValue("--entertainment-color"),
+    nature: rootStyles.getPropertyValue("--nature-color"),
+    other: rootStyles.getPropertyValue("--others-color"),
+  };
+
+  el.style.backgroundColor = colorMap[category] || colorMap["other"];
 
   return el;
 }

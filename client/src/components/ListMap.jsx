@@ -21,16 +21,25 @@ export default function ListMap({ pins }) {
 
   const boundsFittedRef = useRef(false);
 
+  const lightMapStyle = `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
+    import.meta.env.VITE_MAPTILER_API_KEY
+  }`;
+  const darkMapStyle = `https://api.maptiler.com/maps/0196bac3-e637-7c87-b191-32cc9b5b086a/style.json?key=${
+    import.meta.env.VITE_MAPTILER_API_KEY
+  }`;
+
   useEffect(() => {
     if (mapRef.current && !mapInstance.current) {
+      const savedTheme = localStorage.getItem("theme");
+      const selectedStyle =
+        savedTheme === "dark" ? darkMapStyle : lightMapStyle;
       const instance = new maplibregl.Map({
         container: mapRef.current,
-        style: `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
-          import.meta.env.VITE_MAPTILER_API_KEY
-        }`,
+        style: selectedStyle,
         center: [28.9744, 41.0082],
         zoom: 4,
       });
+      window.listMapInstance = instance;
       mapInstance.current = instance;
     }
   }, []);

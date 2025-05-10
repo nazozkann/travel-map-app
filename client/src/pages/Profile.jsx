@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { CircleUserRound } from "lucide-react";
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
 import "../styles/Main.css";
+import useDragScroll from "../hooks/useDragScroll";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -16,6 +17,14 @@ export default function Profile() {
 
   const location = useLocation();
   const { username: routeUsername } = useParams();
+
+  const addedRef = useRef();
+  const likedRef = useRef();
+  const listRef = useRef();
+
+  useDragScroll(addedRef);
+  useDragScroll(likedRef);
+  useDragScroll(listRef);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -240,7 +249,7 @@ export default function Profile() {
         {activeTab === "added" && (
           <section className="profile-section">
             <h2>Places added by {username}</h2>
-            <ul className="profile-card-list">
+            <ul className="profile-card-list" ref={addedRef}>
               {pins.map((pin) => (
                 <li
                   className="profile-card"
@@ -276,7 +285,7 @@ export default function Profile() {
         {activeTab === "liked" && (
           <section className="profile-section">
             <h2>Liked Places</h2>
-            <ul className="profile-card-list">
+            <ul className="profile-card-list" ref={likedRef}>
               {likedPins.map((pin) => (
                 <li
                   className="profile-card"
@@ -312,7 +321,7 @@ export default function Profile() {
         {activeTab === "lists" && (
           <section className="profile-section">
             <h2>Your Lists</h2>
-            <ul className="profile-list">
+            <ul className="profile-list" ref={listRef}>
               {userLists.map((list) => (
                 <li
                   className="profile-list-item-list"

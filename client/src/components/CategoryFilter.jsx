@@ -1,4 +1,4 @@
-// src/components/CategoryFilter.jsx
+import { useEffect, useState } from "react";
 import { categories } from "../utils/categories";
 import { tags } from "../utils/tags";
 import "../styles/Main.css";
@@ -13,6 +13,15 @@ export default function CategoryFilter({
   showTags,
   setShowTags,
 }) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 767);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 767);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
   const toggleCategory = (e, key) => {
     e.preventDefault();
     setSelectedCategories((cs) =>
@@ -53,7 +62,7 @@ export default function CategoryFilter({
             <img
               src={`/assets/icons/${icon.displayName}.svg`}
               alt={key}
-              style={{ width: "1.85rem", height: "1.85rem" }}
+              className="category-icon"
             />
           </button>
         ))}
@@ -62,7 +71,7 @@ export default function CategoryFilter({
           onClick={() => setShowTags((prev) => !prev)}
           className="toggle-tags-btn"
         >
-          {showTags ? "Hide" : "Show"}
+          {!isMobile ? (showTags ? "Hide" : "Show") : null}
         </button>
 
         <div
@@ -70,12 +79,12 @@ export default function CategoryFilter({
           onClick={() => setIsAdding((prev) => !prev)}
           title={isAdding ? "Cancel add-pin mode" : "Enter add-pin mode"}
         >
-          {isAdding ? "Cancel" : "+"}
+          {isAdding ? "x" : "+"}
         </div>
       </div>
 
       {showTags && (
-        <div className="category-filter">
+        <div className="category-filter tag-container">
           {tags.map(({ key, label }) => (
             <button
               key={key}
