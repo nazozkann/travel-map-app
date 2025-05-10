@@ -4,6 +4,7 @@ const router = express.Router();
 const Pin = require("../models/Pin");
 const cloudinary = require("../config/cloudinary");
 const fs = require("fs");
+const verifyToken = require("../middleware/verifyToken");
 
 router.post("/", async (req, res) => {
   try {
@@ -17,6 +18,7 @@ router.post("/", async (req, res) => {
       createdBy,
       imageUrl,
       images,
+      city,
     } = req.body;
 
     const newPin = new Pin({
@@ -29,6 +31,7 @@ router.post("/", async (req, res) => {
       createdBy,
       imageUrl,
       images,
+      city,
     });
 
     const saved = await newPin.save();
@@ -84,7 +87,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.put("/:id/like", async (req, res) => {
+router.put("/:id/like", verifyToken, async (req, res) => {
   const { username } = req.body;
 
   try {
@@ -110,7 +113,7 @@ router.put("/:id/like", async (req, res) => {
   }
 });
 
-router.put("/:id/dislike", async (req, res) => {
+router.put("/:id/dislike", verifyToken, async (req, res) => {
   const { username } = req.body;
 
   try {
@@ -154,6 +157,14 @@ router.delete("/:id", async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: "Error while deleting pin" });
   }
+});
+
+router.get("/by-city/:city", async (req, res) => {
+  const city = req.params.city;
+  const pins = await Pin.find({
+    city: { $regex: new RegExp(`^${city}$`, "i") },
+  });
+  res.json(pins);
 });
 
 // router.post("/upload-images", upload.array("images", 10), async (req, res) => {

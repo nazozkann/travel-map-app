@@ -5,6 +5,7 @@ const Pin = require("../models/Pin");
 const mongoose = require("mongoose");
 const path = require("path");
 const cloudinary = require("../config/cloudinary");
+const verifyToken = require("../middleware/verifyToken");
 
 const ObjectId = mongoose.Types.ObjectId;
 
@@ -390,7 +391,7 @@ router.delete("/:listId/comments/:commentId", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-router.put("/:listId/like", async (req, res) => {
+router.put("/:listId/like", verifyToken, async (req, res) => {
   const { username } = req.body;
 
   try {

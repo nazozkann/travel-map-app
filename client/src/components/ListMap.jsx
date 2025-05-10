@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
+import maplibregl, { LngLatBounds } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { renderToString } from "react-dom/server";
 import PopUp from "./PopUp";
@@ -15,8 +15,11 @@ export default function ListMap({ pins }) {
     categories.map((cat) => cat.key)
   );
   const [selectedTags, setSelectedTags] = useState([]);
+  const [showTags, setShowTags] = useState(false);
   const navigate = useNavigate();
   const markersRef = useRef([]);
+
+  const boundsFittedRef = useRef(false);
 
   useEffect(() => {
     if (mapRef.current && !mapInstance.current) {
@@ -34,14 +37,46 @@ export default function ListMap({ pins }) {
 
   useEffect(() => {
     const map = mapInstance.current;
+    if (!map || !pins || pins.length === 0 || boundsFittedRef.current) return;
+
+    // Harita yüklendiyse doğrudan çalıştır
+    const fitMapToPins = () => {
+      const bounds = new maplibregl.LngLatBounds();
+
+      pins.forEach((pin) => {
+        if (
+          typeof pin.longitude === "number" &&
+          typeof pin.latitude === "number"
+        ) {
+          bounds.extend([pin.longitude, pin.latitude]);
+        }
+      });
+
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds, {
+          padding: 50,
+          duration: 1000,
+          maxZoom: 14,
+        });
+        boundsFittedRef.current = true;
+      }
+    };
+
+    if (map.loaded()) {
+      fitMapToPins();
+    } else {
+      map.once("load", fitMapToPins);
+    }
+  }, [pins]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
     if (!map || !pins) return;
 
-    // önce eski markerları temizle
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
     pins.forEach((pin) => {
-      // **kategori filtresi:** hiçbir kategori seçili değilse tümünü geç, seçili varsa sadece onlar
       if (
         selectedCategories.length > 0 &&
         !selectedCategories.includes(pin.category)
@@ -49,8 +84,6 @@ export default function ListMap({ pins }) {
         return;
       }
 
-      // **etiket filtresi:** hiçbir etiket seçili değilse tümünü geç,
-      // seçili etiket varsa pin.tags içinde en az bir eşleşme olmalı
       const allTags = selectedTags.length === 0;
       const hasTag = Array.isArray(pin.tags)
         ? pin.tags.some((t) => selectedTags.includes(t))
@@ -59,7 +92,6 @@ export default function ListMap({ pins }) {
         return;
       }
 
-      // popup ve marker yarat
       const html = renderToString(
         <PopUp
           id={pin._id}
@@ -106,6 +138,8 @@ export default function ListMap({ pins }) {
           setSelectedCategories={setSelectedCategories}
           selectedTags={selectedTags}
           setSelectedTags={setSelectedTags}
+          showTags={showTags}
+          setShowTags={setShowTags}
         />
       </div>
     </div>

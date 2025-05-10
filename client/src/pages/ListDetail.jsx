@@ -8,6 +8,7 @@ import {
 import ListMap from "../components/ListMap";
 import { categories } from "../utils/categories";
 import { X } from "lucide-react";
+import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
 
 export default function ListDetail() {
   const navigate = useNavigate();
@@ -197,12 +198,21 @@ export default function ListDetail() {
 
   async function handleLikeList() {
     const username = localStorage.getItem("username");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("You need to be logged in to like a list.");
+      navigate("/auth");
+      return;
+    }
     try {
       const res = await fetch(
         import.meta.env.VITE_API_URL + `/api/lists/${listId}/like`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify({ username }),
         }
       );
@@ -233,9 +243,9 @@ export default function ListDetail() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username }),
       });
-      console.log("⚙️ Response status:", res.status);
+      console.log(" Response status:", res.status);
       const data = await res.json();
-      console.log("👀 Response body:", data);
+      console.log(" Response body:", data);
       if (res.ok) {
         alert("Request sent!");
         setHasSentRequest(true);
@@ -434,6 +444,39 @@ export default function ListDetail() {
       )}
 
       {!editing && <ListMap pins={filteredPins} />}
+
+      <div className="pin-card-grid">
+        {filteredPins.map((pin) => (
+          <div
+            key={pin._id}
+            className="pin-card"
+            onClick={() => navigate(`/places/${pin._id}`)}
+          >
+            {pin.imageUrl && (
+              <img
+                src={pin.imageUrl}
+                alt={pin.title}
+                className="pin-card-image"
+              />
+            )}
+            <div className="pin-card-content">
+              <h3>{pin.title}</h3>
+              <div className="pin-card-meta">
+                <span>{pin.category}</span>
+                <span>
+                  <IoIosThumbsUp style={{ width: "1.25rem", height: "auto" }} />{" "}
+                  {pin.likes}{" "}
+                  <IoIosThumbsDown
+                    style={{ width: "1.25rem", height: "auto" }}
+                  />{" "}
+                  {pin.dislikes}
+                </span>
+              </div>
+              <p>{pin.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
 
       <div className="list-comments-section">
         <h2>Comments</h2>

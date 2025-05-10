@@ -24,6 +24,7 @@ export default function BestPlaces() {
   const [selectedCategories, setSelectedCategories] = useState(
     categories.map((cat) => cat.key)
   );
+  const [searchCity, setSearchCity] = useState("");
 
   useEffect(() => {
     fetch(import.meta.env.VITE_API_URL + "/api/pins")
@@ -49,8 +50,19 @@ export default function BestPlaces() {
       });
     setView("places");
   }, []);
-  const filteredPins = pins.filter((pin) =>
-    selectedCategories.includes(pin.category)
+  const filteredPins = pins.filter(
+    (pin) =>
+      selectedCategories.includes(pin.category) &&
+      (!searchCity ||
+        pin.city?.toLowerCase().includes(searchCity.toLowerCase()))
+  );
+  const filteredLists = lists.filter((list) =>
+    list.pins?.some(
+      (pin) =>
+        (!searchCity ||
+          pin.city?.toLowerCase().includes(searchCity.toLowerCase())) &&
+        selectedCategories.includes(pin.category)
+    )
   );
 
   function toggleCategory(catKey) {
@@ -84,6 +96,15 @@ export default function BestPlaces() {
         >
           Lists
         </button>
+        <div className="search-bar-container">
+          <input
+            type="text"
+            placeholder="Search by city..."
+            value={searchCity}
+            onChange={(e) => setSearchCity(e.target.value)}
+            className="search-input"
+          />
+        </div>
       </div>
 
       {view === "places" && (
@@ -150,7 +171,7 @@ export default function BestPlaces() {
       </div>
       <div className="lists-list">
         {view === "lists" &&
-          lists.map((list) => (
+          filteredLists.map((list) => (
             <Link
               to={`/lists/${list._id}`}
               key={list._id}
