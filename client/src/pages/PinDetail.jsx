@@ -63,11 +63,21 @@ export default function PinDetail() {
 
   async function handleLike() {
     const username = localStorage.getItem("username");
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("You need to be logged in to vote");
+      navigate("/auth");
+      return;
+    }
+
     const res = await fetch(
       import.meta.env.VITE_API_URL + `/api/pins/${id}/like`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ username }),
       }
     );
@@ -80,12 +90,21 @@ export default function PinDetail() {
   }
 
   async function handleDislike() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      alert("You need to be logged in to vote");
+      navigate("/auth");
+      return;
+    }
     const username = localStorage.getItem("username");
     const res = await fetch(
       import.meta.env.VITE_API_URL + `/api/pins/${id}/dislike`,
       {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ username }),
       }
     );

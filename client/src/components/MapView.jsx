@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, use } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { renderToString } from "react-dom/server";
@@ -8,7 +8,7 @@ import getMarkerElement from "../utils/getMarkerElement";
 import CategoryFilter from "./CategoryFilter";
 import { categories } from "../utils/categories";
 import { tags } from "../utils/tags";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import ReactDOM from "react-dom/client";
 
 export default function MapView({ selectedLocation }) {
@@ -21,16 +21,20 @@ export default function MapView({ selectedLocation }) {
     categories.map((cat) => cat.key)
   );
   const [selectedTags, setSelectedTags] = useState([]);
+  const [allPins, setAllPins] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [showTags, setShowTags] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    const savedState = JSON.parse(localStorage.getItem("mapViewState"));
     const instance = new maplibregl.Map({
       container: mapRef.current,
       style: `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
         import.meta.env.VITE_MAPTILER_API_KEY
       }`,
-      center: [18, 45],
-      zoom: 4,
+      center: savedState ? [savedState.lng, savedState.lat] : [18, 45], // default merkez
+      zoom: savedState ? savedState.zoom : 4,
     });
     setMap(instance);
 
@@ -38,74 +42,99 @@ export default function MapView({ selectedLocation }) {
   }, []);
 
   useEffect(() => {
-    if (!map) return;
+    const categoryParam = searchParams.get("categories");
+    const tagParam = searchParams.get("tags");
 
-    markersRef.current.forEach((marker) => marker.remove());
-    markersRef.current = [];
-
+    if (categoryParam) {
+      setSelectedCategories(categoryParam.split(","));
+    }
+    if (tagParam) {
+      setSelectedTags(tagParam.split(","));
+    }
+  }, []);
+  useEffect(() => {
     fetch(import.meta.env.VITE_API_URL + "/api/pins")
       .then((res) => res.json())
-      .then((pins) => {
-        pins.forEach((pin) => {
-          if (!selectedCategories.includes(pin.category)) return;
+      .then((data) => setAllPins(data));
+  }, []);
 
-          const filterTags =
-            selectedTags.length > 0 && selectedTags.length < tags.length;
-          if (filterTags) {
-            if (
-              !Array.isArray(pin.tags) ||
-              !pin.tags.some((t) => selectedTags.includes(t))
-            ) {
-              return;
-            }
-          }
+  useEffect(() => {
+    const params = {};
+    if (selectedCategories.length > 0) {
+      params.categories = selectedCategories.join(",");
+    }
 
-          const html = renderToString(
-            <PopUp
-              id={pin._id}
-              title={pin.title}
-              category={pin.category}
-              createdBy={pin.createdBy}
-              description={pin.description}
-              likes={pin.likes}
-              dislikes={pin.dislikes}
-              imageUrl={pin.imageUrl}
-            />
-          );
+    if (selectedTags.length > 0) {
+      params.tags = selectedTags.join(",");
+    }
+    setSearchParams(params);
+  }, [selectedCategories, selectedTags]);
 
-          const el = getMarkerElement(pin.category);
-          const marker = new maplibregl.Marker({ element: el })
-            .setLngLat([pin.longitude, pin.latitude])
-            .addTo(map);
+  useEffect(() => {
+    if (!map) return;
 
-          marker.getElement().addEventListener("mouseenter", () =>
-            new maplibregl.Popup({
-              offset: 25,
-              closeButton: false,
-              closeOnClick: false,
-            })
-              .setLngLat([pin.longitude, pin.latitude])
-              .setHTML(html)
-              .addTo(map)
-          );
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
 
-          marker.getElement().addEventListener("mouseleave", () => {
-            const popups = document.getElementsByClassName("maplibregl-popup");
-            if (popups.length > 0) {
-              popups[0].remove();
-            }
-          });
+    const filtered = allPins.filter((pin) => {
+      if (!selectedCategories.includes(pin.category)) return false;
+      if (
+        selectedTags.length > 0 &&
+        selectedTags.length < tags.length &&
+        (!Array.isArray(pin.tags) ||
+          !pin.tags.some((t) => selectedTags.includes(t)))
+      ) {
+        return false;
+      }
+      return true;
+    });
 
-          marker.getElement().addEventListener("click", () => {
-            if (!isAdding) {
-              navigate(`/places/${pin._id}`);
-            }
-          });
+    filtered.forEach((pin) => {
+      const html = renderToString(
+        <PopUp
+          id={pin._id}
+          title={pin.title}
+          category={pin.category}
+          createdBy={pin.createdBy}
+          description={pin.description}
+          likes={pin.likes}
+          dislikes={pin.dislikes}
+          imageUrl={pin.imageUrl}
+        />
+      );
 
-          markersRef.current.push(marker);
-        });
+      const el = getMarkerElement(pin.category);
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([pin.longitude, pin.latitude])
+        .addTo(map);
+
+      marker.getElement().addEventListener("mouseenter", () =>
+        new maplibregl.Popup({
+          offset: 25,
+          closeButton: false,
+          closeOnClick: false,
+        })
+          .setLngLat([pin.longitude, pin.latitude])
+          .setHTML(html)
+          .addTo(map)
+      );
+
+      marker.getElement().addEventListener("mouseleave", () => {
+        const popups = document.getElementsByClassName("maplibregl-popup");
+        if (popups.length > 0) {
+          popups[0].remove();
+        }
       });
-  }, [selectedCategories, map, isAdding, selectedTags]);
+
+      marker.getElement().addEventListener("click", () => {
+        if (!isAdding) {
+          navigate(`/places/${pin._id}`);
+        }
+      });
+
+      markersRef.current.push(marker);
+    });
+  }, [allPins, selectedCategories, selectedTags, map, isAdding]);
 
   useEffect(() => {
     if (!map) return;
@@ -255,6 +284,26 @@ export default function MapView({ selectedLocation }) {
       }
     }
   }, [selectedLocation, map]);
+  useEffect(() => {
+    if (!map) return;
+
+    const saveViewState = () => {
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      const state = {
+        lng: center.lng,
+        lat: center.lat,
+        zoom,
+      };
+      localStorage.setItem("mapViewState", JSON.stringify(state));
+    };
+
+    map.on("moveend", saveViewState);
+
+    return () => {
+      map.off("moveend", saveViewState);
+    };
+  }, [map]);
 
   useEffect(() => {
     if (!map) return;
@@ -270,6 +319,8 @@ export default function MapView({ selectedLocation }) {
         setIsAdding={setIsAdding}
         setSelectedTags={setSelectedTags}
         selectedTags={selectedTags}
+        showTags={showTags}
+        setShowTags={setShowTags}
       />
     </div>
   );

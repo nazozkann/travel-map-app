@@ -10,6 +10,8 @@ export default function CategoryFilter({
   setSelectedTags,
   isAdding,
   setIsAdding,
+  showTags,
+  setShowTags,
 }) {
   const toggleCategory = (e, key) => {
     e.preventDefault();
@@ -56,6 +58,12 @@ export default function CategoryFilter({
           </button>
         ))}
         <button className="turn-off-all" onClick={toggleAllCategories}></button>
+        <button
+          onClick={() => setShowTags((prev) => !prev)}
+          className="toggle-tags-btn"
+        >
+          {showTags ? "Hide" : "Show"}
+        </button>
 
         <div
           className={`add-pin-button ${isAdding ? "adding" : ""}`}
@@ -66,20 +74,22 @@ export default function CategoryFilter({
         </div>
       </div>
 
-      <div className="category-filter">
-        {tags.map(({ key, label }) => (
-          <button
-            key={key}
-            className={`tag tag-${key} ${
-              selectedTags.includes(key) ? "active" : ""
-            }`}
-            onClick={(e) => toggleTag(e, key)}
-          >
-            {label}
-          </button>
-        ))}
-        <button className="turn-off-all" onClick={toggleAllTags}></button>
-      </div>
+      {showTags && (
+        <div className="category-filter">
+          {tags.map(({ key, label }) => (
+            <button
+              key={key}
+              className={`tag tag-${key} ${
+                selectedTags.includes(key) ? "active" : ""
+              }`}
+              onClick={(e) => toggleTag(e, key)}
+            >
+              {label}
+            </button>
+          ))}
+          <button className="turn-off-all" onClick={toggleAllTags}></button>
+        </div>
+      )}
     </div>
   );
 }

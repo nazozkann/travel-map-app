@@ -30,6 +30,7 @@ const PinSchema = new mongoose.Schema(
     dislikes: { type: Number, default: 0 },
     likedBy: { type: [String], default: [] },
     dislikedBy: { type: [String], default: [] },
+    city: { type: String },
   },
   { timestamps: true }
 );

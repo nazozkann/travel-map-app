@@ -28,10 +28,24 @@ export default function PinForm({ lat, lng, onSuccess }) {
     const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
     setFormData((prev) => ({ ...prev, tags: selected }));
   }
+  async function getCityFromCoords(lat, lon) {
+    const res = await fetch(
+      `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${
+        import.meta.env.VITE_GEOAPIFY_API_KEY
+      }`
+    );
+    const data = await res.json();
+    return data.features?.[0]?.properties?.city || "Unknown";
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     const username = localStorage.getItem("username") || "anonim";
+
+    const lat = e.target.lat.value;
+    const lng = e.target.lng.value;
+
+    const city = await getCityFromCoords(lat, lng);
 
     const jsonBody = {
       title: formData.title,
@@ -41,6 +55,7 @@ export default function PinForm({ lat, lng, onSuccess }) {
       latitude: lat.toString(),
       longitude: lng.toString(),
       createdBy: username,
+      city,
     };
 
     const res = await fetch(import.meta.env.VITE_API_URL + "/api/pins", {
