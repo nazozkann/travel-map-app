@@ -36,6 +36,9 @@ app.use((req, res, next) => {
     );
   }
 });
+const pingRoutes = require("./routes/ping");
+app.use("/api", pingRoutes);
+
 const authRoutes = require("./routes/auth");
 app.use("/api/auth", authRoutes);
 

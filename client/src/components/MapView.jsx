@@ -135,9 +135,43 @@ export default function MapView({ selectedLocation }) {
         }
       });
 
-      marker.getElement().addEventListener("click", () => {
-        if (!isAdding) {
+      let popupOpenId = null; // en üste tanımla
+
+      marker.getElement().addEventListener("click", (e) => {
+        e.stopPropagation();
+
+        // Eğer mobil ise ve popup açık değilse: popup göster
+        const isTouchDevice =
+          "ontouchstart" in window || navigator.maxTouchPoints > 0;
+
+        if (isTouchDevice) {
+          if (popupOpenId !== pin._id) {
+            popupOpenId = pin._id;
+
+            const tempPopup = new maplibregl.Popup({
+              offset: 25,
+              closeButton: false,
+              closeOnClick: false,
+            })
+              .setLngLat([pin.longitude, pin.latitude])
+              .setHTML(html)
+              .addTo(map);
+
+            const popups = document.getElementsByClassName("maplibregl-popup");
+            if (popups.length > 1) {
+              for (let i = 0; i < popups.length - 1; i++) {
+                popups[i].remove();
+              }
+            }
+
+            return;
+          }
+
           navigate(`/places/${pin._id}`);
+        } else {
+          if (!isAdding) {
+            navigate(`/places/${pin._id}`);
+          }
         }
       });
 
