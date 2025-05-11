@@ -14,12 +14,21 @@ import Root from "./Root";
 
 function App() {
   const [location, setLocation] = useState(null);
+  const [appReady, setAppReady] = useState(false);
 
   return (
     <Router>
       <Routes>
         <Route path="/startup" element={<Startup />} />
-        <Route element={<Root setLocation={setLocation} />}>
+        <Route
+          element={
+            <Root
+              setLocation={setLocation}
+              setAppReady={setAppReady}
+              appReady={appReady}
+            />
+          }
+        >
           <Route path="/" element={<Home location={location} />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/signup" element={<SignUp />} />

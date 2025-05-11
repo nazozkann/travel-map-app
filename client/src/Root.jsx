@@ -1,27 +1,33 @@
 import { useEffect } from "react";
 import { useNavigate, Outlet } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Startup from "./pages/Startup";
 
-export default function Root({ setLocation }) {
+export default function Root({ setLocation, setAppReady, appReady }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const pingBackend = async () => {
+    const startupFlow = async () => {
+      const delay = new Promise((resolve) => setTimeout(resolve, 3000));
+
       try {
-        const res = await fetch(import.meta.env.VITE_API_URL + "/api/ping");
-        await fetch(import.meta.env.VITE_API_URL + "/api/pins");
-        if (!res.ok) throw new Error();
-      } catch {
+        await fetch(import.meta.env.VITE_API_URL + "/api/ping");
+        const pinsRes = await fetch(import.meta.env.VITE_API_URL + "/api/pins");
+        await pinsRes.json();
+        await delay;
+        setAppReady(true);
+      } catch (err) {
+        console.error("Backend ping başarısız", err);
         navigate("/startup");
       }
     };
-    pingBackend();
 
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") {
-      document.body.classList.add("dark");
-    }
-  }, [navigate]);
+    startupFlow();
+  }, [navigate, setAppReady]);
+
+  if (!appReady) {
+    return <Startup />;
+  }
 
   return (
     <>
