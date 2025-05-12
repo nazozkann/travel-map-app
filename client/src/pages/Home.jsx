@@ -5,8 +5,8 @@ import "../styles/Main.css";
 export default function Home({ location }) {
   useEffect(() => {
     document.body.style.overflow = "hidden";
-    document.body.style.overflowX = "hidden"; // 👈 Bunu ekstra koy
-    document.body.style.overflowY = "hidden"; // 👈 İkisini net yaz
+    document.body.style.overflowX = "hidden"; 
+    document.body.style.overflowY = "hidden"; 
     document.body.style.width = "100%";
     document.body.style.position = "relative";
 
