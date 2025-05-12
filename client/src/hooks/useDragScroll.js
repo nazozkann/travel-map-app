@@ -34,7 +34,7 @@ export default function useDragScroll(ref) {
       el.scrollLeft = scrollLeft - walk;
     };
 
-    // 🧠 Touch destekli drag scroll (MOBİL)
+
     let touchStartX = 0;
     let touchScrollLeft = 0;
 
