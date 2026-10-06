@@ -1,20 +1,20 @@
 const jwt = require("jsonwebtoken");
 
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
+  const authHeader = req.headers.authorization || "";
+  const [scheme, token] = authHeader.split(" ");
+
+  if (scheme !== "Bearer" || !token) {
     return res.status(401).json({ message: "No token provided" });
   }
 
-  const token = authHeader.split(" ")[1];
-
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = { id: decoded.id, username: decoded.username };
     next();
-  } catch (err) {
-    console.error(err);
-    return res.status(403).json({ message: "Invalid token" });
+  } catch {
+    // 401 (not 403) so the client knows the session is gone and can log out.
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
 

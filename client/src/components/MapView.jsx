@@ -1,347 +1,200 @@
-import { useState, useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
-import { renderToString } from "react-dom/server";
-import PopUp from "./PopUp";
+import { useState, useEffect, useRef, useMemo } from "react";
+import * as maplibregl from "maplibre-gl";
+import { createRoot } from "react-dom/client";
 import PinForm from "./PinForm";
-import getMarkerElement from "../utils/getMarkerElement";
 import CategoryFilter from "./CategoryFilter";
 import { categories } from "../utils/categories";
 import { tags } from "../utils/tags";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import ReactDOM from "react-dom/client";
+import useMapInstance from "../hooks/useMapInstance";
+import { createPinMarkers } from "../utils/pinMarkers";
+import filterPins from "../utils/filterPins";
+import { api } from "../utils/api";
+import { getUsername } from "../utils/auth";
+
+const DEFAULT_VIEW = { center: [18, 45], zoom: 4 };
+
+function readSavedView() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("mapViewState"));
+    if (saved && Number.isFinite(saved.lng) && Number.isFinite(saved.lat)) {
+      return { center: [saved.lng, saved.lat], zoom: saved.zoom ?? 4 };
+    }
+  } catch {
+    // corrupted value, fall back to default
+  }
+  return DEFAULT_VIEW;
+}
+
+function readListParam(searchParams, name, allowed) {
+  const value = searchParams.get(name);
+  if (value === null) return null;
+  return value.split(",").filter((v) => allowed.includes(v));
+}
 
 export default function MapView({ selectedLocation }) {
   const mapRef = useRef(null);
-  const markerRef = useRef(null);
-  const markersRef = useRef([]);
-  const [map, setMap] = useState(null);
+  const searchMarkerRef = useRef(null);
+  const isAddingRef = useRef(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState(
-    categories.map((cat) => cat.key)
-  );
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [allPins, setAllPins] = useState([]);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedCategories, setSelectedCategories] = useState(
+    () =>
+      readListParam(
+        searchParams,
+        "categories",
+        categories.map((c) => c.key)
+      ) ?? categories.map((cat) => cat.key)
+  );
+  const [selectedTags, setSelectedTags] = useState(
+    () =>
+      readListParam(
+        searchParams,
+        "tags",
+        tags.map((t) => t.key)
+      ) ?? []
+  );
+  const [allPins, setAllPins] = useState([]);
   const [showTags, setShowTags] = useState(false);
   const navigate = useNavigate();
 
-  const lightMapStyle = `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
-    import.meta.env.VITE_MAPTILER_API_KEY
-  }`;
-  const darkMapStyle = `https://api.maptiler.com/maps/0196bac3-e637-7c87-b191-32cc9b5b086a/style.json?key=${
-    import.meta.env.VITE_MAPTILER_API_KEY
-  }`;
+  const map = useMapInstance(mapRef, readSavedView);
 
   useEffect(() => {
-    const savedState = JSON.parse(localStorage.getItem("mapViewState"));
-    const savedTheme = localStorage.getItem("theme");
-    const mapStyle = savedTheme === "dark" ? darkMapStyle : lightMapStyle;
-    const instance = new maplibregl.Map({
-      container: mapRef.current,
-      style: mapStyle,
-      center: savedState ? [savedState.lng, savedState.lat] : [18, 45], // default merkez
-      zoom: savedState ? savedState.zoom : 4,
-    });
-    setMap(instance);
+    isAddingRef.current = isAdding;
+  }, [isAdding]);
 
-    window.mapInstance = instance;
-
-    return () => instance.remove();
+  useEffect(() => {
+    api("/api/pins")
+      .then(setAllPins)
+      .catch((err) => console.error("Pins couldn't be loaded:", err));
   }, []);
 
+  // Mirror filters in the URL without adding history entries (keeps Back working).
   useEffect(() => {
-    const categoryParam = searchParams.get("categories");
-    const tagParam = searchParams.get("tags");
+    const params = {
+      categories: selectedCategories.join(","),
+    };
+    if (selectedTags.length > 0) params.tags = selectedTags.join(",");
+    setSearchParams(params, { replace: true });
+  }, [selectedCategories, selectedTags, setSearchParams]);
 
-    if (categoryParam) {
-      setSelectedCategories(categoryParam.split(","));
-    }
-    if (tagParam) {
-      setSelectedTags(tagParam.split(","));
-    }
-  }, []);
-  useEffect(() => {
-    fetch(import.meta.env.VITE_API_URL + "/api/pins")
-      .then((res) => res.json())
-      .then((data) => setAllPins(data));
-  }, []);
+  const filteredPins = useMemo(
+    () => filterPins(allPins, selectedCategories, selectedTags),
+    [allPins, selectedCategories, selectedTags]
+  );
 
-  useEffect(() => {
-    const params = {};
-    if (selectedCategories.length > 0) {
-      params.categories = selectedCategories.join(",");
-    }
-
-    if (selectedTags.length > 0) {
-      params.tags = selectedTags.join(",");
-    }
-    setSearchParams(params);
-  }, [selectedCategories, selectedTags]);
-
+  const markersRef = useRef(null);
   useEffect(() => {
     if (!map) return;
-
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-
-    const filtered = allPins.filter((pin) => {
-      if (!selectedCategories.includes(pin.category)) return false;
-      if (
-        selectedTags.length > 0 &&
-        selectedTags.length < tags.length &&
-        (!Array.isArray(pin.tags) ||
-          !pin.tags.some((t) => selectedTags.includes(t)))
-      ) {
-        return false;
-      }
-      return true;
+    markersRef.current = createPinMarkers(map, {
+      onOpen: (pin) => navigate(`/places/${pin._id}`),
+      canOpen: () => !isAddingRef.current,
     });
-
-    filtered.forEach((pin) => {
-      const html = renderToString(
-        <PopUp
-          id={pin._id}
-          title={pin.title}
-          category={pin.category}
-          createdBy={pin.createdBy}
-          description={pin.description}
-          likes={pin.likes}
-          dislikes={pin.dislikes}
-          imageUrl={pin.imageUrl}
-        />
-      );
-
-      const el = getMarkerElement(pin.category);
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([pin.longitude, pin.latitude])
-        .addTo(map);
-
-      marker.getElement().addEventListener("mouseenter", () =>
-        new maplibregl.Popup({
-          offset: 25,
-          closeButton: false,
-          closeOnClick: false,
-        })
-          .setLngLat([pin.longitude, pin.latitude])
-          .setHTML(html)
-          .addTo(map)
-      );
-
-      marker.getElement().addEventListener("mouseleave", () => {
-        const popups = document.getElementsByClassName("maplibregl-popup");
-        if (popups.length > 0) {
-          popups[0].remove();
-        }
-      });
-
-      let popupOpenId = null; // en üste tanımla
-
-      marker.getElement().addEventListener("click", (e) => {
-        e.stopPropagation();
-
-        // Eğer mobil ise ve popup açık değilse: popup göster
-        const isTouchDevice =
-          "ontouchstart" in window || navigator.maxTouchPoints > 0;
-
-        if (isTouchDevice) {
-          if (popupOpenId !== pin._id) {
-            popupOpenId = pin._id;
-
-            const tempPopup = new maplibregl.Popup({
-              offset: 25,
-              closeButton: false,
-              closeOnClick: false,
-            })
-              .setLngLat([pin.longitude, pin.latitude])
-              .setHTML(html)
-              .addTo(map);
-
-            const popups = document.getElementsByClassName("maplibregl-popup");
-            if (popups.length > 1) {
-              for (let i = 0; i < popups.length - 1; i++) {
-                popups[i].remove();
-              }
-            }
-
-            return;
-          }
-
-          navigate(`/places/${pin._id}`);
-        } else {
-          if (!isAdding) {
-            navigate(`/places/${pin._id}`);
-          }
-        }
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [allPins, selectedCategories, selectedTags, map, isAdding]);
+    return () => {
+      markersRef.current.destroy();
+      markersRef.current = null;
+    };
+  }, [map, navigate]);
 
   useEffect(() => {
-    if (!map) return;
+    const markers = markersRef.current;
+    if (!markers) return;
+    markers.clear();
+    filteredPins.forEach((pin) => markers.add(pin));
+  }, [filteredPins, map]);
+
+  useEffect(() => {
+    if (!map || !isAdding) return;
+
+    let popup = null;
+
+    const closeForm = () => {
+      popup?.remove();
+    };
 
     const handleMapClick = ({ lngLat }) => {
+      closeForm();
       const { lng, lat } = lngLat;
-      if (!isAdding) return;
 
-      // const formHTML = renderToString(<PinForm />);
       const container = document.createElement("div");
-      const popup = new maplibregl.Popup({ offset: 25 }).setDOMContent(
-        container
-      );
-      popup.setLngLat([lng, lat]).addTo(map);
+      const formRoot = createRoot(container);
+      const formPopup = new maplibregl.Popup({ offset: 25, maxWidth: "320px" })
+        .setDOMContent(container)
+        .setLngLat([lng, lat])
+        .addTo(map);
+      formPopup.on("close", () => {
+        setTimeout(() => formRoot.unmount());
+      });
+      popup = formPopup;
 
-      ReactDOM.createRoot(container).render(
+      formRoot.render(
         <PinForm
           lat={lat}
           lng={lng}
           onSuccess={(newPin) => {
-            const el = getMarkerElement(newPin.category);
-            const marker = new maplibregl.Marker({ element: el })
-              .setLngLat([newPin.longitude, newPin.latitude])
-              .addTo(map);
-            popup.remove();
+            setAllPins((prev) => [...prev, newPin]);
+            formPopup.remove();
             setIsAdding(false);
           }}
         />
       );
-
-      // popup.on("open", () => {
-      //   // const form = document.getElementById("pin-form");
-      //   // if (!form) return;
-      //   const form = popup
-      //     .getElement() // <div class="maplibregl-popup">
-      //     .querySelector(".maplibregl-popup-content #pin-form"); // <form id="pin-form">
-
-      //   if (!form) return;
-
-      //   form.addEventListener("submit", async (ev) => {
-      //     ev.preventDefault();
-
-      //     const username = localStorage.getItem("username") || "anonim";
-
-      //     const tagValues = Array.from(
-      //       form.querySelector('select[name="tags"]').selectedOptions,
-      //       (o) => o.value
-      //     );
-
-      //     const jsonBody = {
-      //       title: ev.target.title.value,
-      //       category: ev.target.category.value,
-      //       description: ev.target.description.value,
-      //       tags: tagValues,
-      //       latitude: lat,
-      //       longitude: lng,
-      //       createdBy: username,
-      //     };
-
-      //     try {
-      //       const res = await fetch(
-      //         import.meta.env.VITE_API_URL + "/api/pins",
-      //         {
-      //           method: "POST",
-      //           headers: { "Content-Type": "application/json" },
-      //           body: JSON.stringify(jsonBody),
-      //         }
-      //       );
-
-      //       if (!res.ok) {
-      //         const errMsg = await res.text();
-      //         console.error("⛔ Sunucu cevabı:", errMsg);
-      //         alert("Pin kaydedilirken hata oluştu");
-      //         return;
-      //       }
-
-      //       const newPin = await res.json();
-
-      //       const el = getMarkerElement(newPin.category);
-      //       const marker = new maplibregl.Marker({ element: el })
-      //         .setLngLat([newPin.longitude, newPin.latitude])
-      //         .addTo(map);
-
-      //       const popupHTML = renderToString(
-      //         <PopUp
-      //           id={newPin._id}
-      //           title={newPin.title}
-      //           category={newPin.category}
-      //           createdBy={newPin.createdBy}
-      //           description={newPin.description}
-      //           likes={newPin.likes}
-      //           dislikes={newPin.dislikes}
-      //         />
-      //       );
-      //       const hoverPopup = new maplibregl.Popup({
-      //         offset: 25,
-      //         closeButton: false,
-      //         closeOnClick: false,
-      //       }).setHTML(popupHTML);
-
-      //       marker.getElement().addEventListener("mouseenter", () => {
-      //         hoverPopup
-      //           .setLngLat([newPin.longitude, newPin.latitude])
-      //           .addTo(map);
-      //       });
-      //       marker.getElement().addEventListener("mouseleave", () => {
-      //         hoverPopup.remove();
-      //       });
-
-      //       markersRef.current.push(marker);
-      //       popup.remove();
-      //       setIsAdding(false);
-      //     } catch (err) {
-      //       console.error("Pin eklenemedi:", err);
-      //     }
-      //   });
-      // });
     };
 
     map.on("click", handleMapClick);
-
     return () => {
       map.off("click", handleMapClick);
+      closeForm();
     };
   }, [map, isAdding]);
 
-  useEffect(() => {
-    if (map && selectedLocation) {
-      map.flyTo({
-        center: [selectedLocation.lng, selectedLocation.lat],
-        zoom: 12,
-        speed: 1.5,
-        curve: 1,
-        essential: true,
-      });
+  function handleSetIsAdding(updater) {
+    const next = typeof updater === "function" ? updater(isAdding) : updater;
+    if (next && !getUsername()) {
+      alert("You need to be logged in to add a place");
+      navigate("/auth");
+      return;
+    }
+    setIsAdding(next);
+  }
 
-      if (markerRef.current) {
-        markerRef.current.setLngLat([
-          selectedLocation.lng,
-          selectedLocation.lat,
-        ]);
-      } else {
-        markerRef.current = new maplibregl.Marker()
-          .setLngLat([selectedLocation.lng, selectedLocation.lat])
-          .addTo(map);
-      }
+  useEffect(() => {
+    if (!map || !selectedLocation) return;
+    const lngLat = [selectedLocation.lng, selectedLocation.lat];
+    map.flyTo({
+      center: lngLat,
+      zoom: 12,
+      speed: 1.5,
+      curve: 1,
+      essential: true,
+    });
+
+    if (searchMarkerRef.current) {
+      searchMarkerRef.current.setLngLat(lngLat);
+    } else {
+      searchMarkerRef.current = new maplibregl.Marker()
+        .setLngLat(lngLat)
+        .addTo(map);
     }
   }, [selectedLocation, map]);
+
   useEffect(() => {
     if (!map) return;
+    searchMarkerRef.current = null;
 
     const saveViewState = () => {
       const center = map.getCenter();
-      const zoom = map.getZoom();
-      const state = {
-        lng: center.lng,
-        lat: center.lat,
-        zoom,
-      };
-      localStorage.setItem("mapViewState", JSON.stringify(state));
+      try {
+        localStorage.setItem(
+          "mapViewState",
+          JSON.stringify({ lng: center.lng, lat: center.lat, zoom: map.getZoom() })
+        );
+      } catch {
+        // storage unavailable (private mode / quota)
+      }
     };
 
     map.on("moveend", saveViewState);
-
     return () => {
       map.off("moveend", saveViewState);
     };
@@ -358,7 +211,7 @@ export default function MapView({ selectedLocation }) {
         selectedCategories={selectedCategories}
         setSelectedCategories={setSelectedCategories}
         isAdding={isAdding}
-        setIsAdding={setIsAdding}
+        setIsAdding={handleSetIsAdding}
         setSelectedTags={setSelectedTags}
         selectedTags={selectedTags}
         showTags={showTags}

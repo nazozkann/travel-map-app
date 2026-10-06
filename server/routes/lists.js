@@ -1,29 +1,26 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const List = require("../models/List");
 const Pin = require("../models/Pin");
-const mongoose = require("mongoose");
-const path = require("path");
-const cloudinary = require("../config/cloudinary");
 const verifyToken = require("../middleware/verifyToken");
+const validateObjectId = require("../middleware/validateObjectId");
 
-const ObjectId = mongoose.Types.ObjectId;
+router.param("listId", validateObjectId);
+router.param("commentId", validateObjectId);
+
+const isHttpUrl = (u) => typeof u === "string" && /^https?:\/\//.test(u);
+const canEdit = (list, username) =>
+  list.createdBy === username || list.collaborators.includes(username);
 
 router.get("/", async (req, res) => {
   try {
     const lists = await List.find();
     res.json(lists);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Error while fetching lists" });
   }
-});
-
-router.post("/upload-cover", async (req, res) => {
-  const { coverImageUrl } = req.body;
-  if (!coverImageUrl) {
-    return res.status(400).json({ message: "No cover image URL provided" });
-  }
-  res.status(200).json({ filePath: coverImageUrl });
 });
 
 router.get("/all", async (req, res) => {
@@ -36,127 +33,15 @@ router.get("/all", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
-  try {
-    const newList = new List(req.body);
-    const saved = await newList.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(500).json({ message: "List couldn't made" });
-  }
-});
-router.get("/id/:listId", async (req, res) => {
-  try {
-    const list = await List.findById(req.params.listId).populate("pins");
-    if (!list) return res.status(404).json({ message: "List not found" });
-    res.status(200).json(list);
-  } catch (err) {
-    console.error("Liste detay çekme hatası:", err);
-    res.status(500).json({ message: "Error fetching list" });
-  }
-});
-
-router.put("/:listId/add-pin", async (req, res) => {
-  try {
-    const { pinId, username } = req.body;
-
-    const list = await List.findById(req.params.listId);
-    if (!list) return res.status(404).json({ message: "List not found" });
-
-    if (list.createdBy !== username && !list.collaborators.includes(username)) {
-      return res.status(403).json({ message: "Not allowed to add pins" });
-    }
-
-    const pin = await Pin.findById(pinId);
-    if (!pin) return res.status(404).json({ message: "Pin not found" });
-
-    list.pins.addToSet(pin._id);
-    const updated = await list.save();
-    const populated = await updated.populate("pins");
-
-    res.json(populated);
-  } catch (err) {
-    console.error("Couldn't add pin to list:", err);
-    res.status(500).json({ message: "Couldn't add pin to list" });
-  }
-});
-
-router.put("/:listId/remove-pin", async (req, res) => {
-  try {
-    const { pinId, username } = req.body;
-
-    const list = await List.findById(req.params.listId);
-    if (!list) return res.status(404).json({ message: "List not found" });
-
-    if (list.createdBy !== username && !list.collaborators.includes(username)) {
-      return res
-        .status(403)
-        .json({ message: "Only the owner or collaborators can edit." });
-    }
-
-    list.pins = list.pins.filter((p) => p.toString() !== pinId);
-    const updated = await list.save();
-    const populated = await updated.populate("pins");
-    res.status(200).json(populated);
-  } catch (err) {
-    res.status(500).json({ message: "Couldn't remove pin from list" });
-  }
-});
-
-router.put("/:listId/request-collab", async (req, res) => {
-  const { username } = req.body;
-  if (!username) return res.status(400).json({ message: "Username required" });
-
-  const list = await List.findById(req.params.listId);
-  if (!list) return res.status(404).json({ message: "List not found" });
-
-  if (
-    list.collabRequests.some(
-      (r) => r.username === username && r.status === "pending"
-    )
-  ) {
-    return res.status(400).json({ message: "Already requested" });
-  }
-
-  list.collabRequests.push({ username, status: "pending", notified: false });
-  await list.save();
-  res.status(200).json({ message: "Request sent" });
-});
-
-router.put("/:listId", async (req, res) => {
-  try {
-    const { name, description, username, coverImage } = req.body;
-
-    const list = await List.findById(req.params.listId);
-    if (!list) return res.status(404).json({ message: "List not found" });
-
-    if (list.createdBy !== username) {
-      return res.status(403).json({ message: "Only the list owner can edit." });
-    }
-
-    list.name = name || list.name;
-    list.description = description || list.description;
-    list.coverImage = coverImage || list.coverImage;
-
-    const updated = await list.save();
-    res.status(200).json(updated);
-  } catch (err) {
-    console.error("Couldn't update list:", err);
-    res.status(500).json({ message: "Couldn't update list" });
-  }
-});
-
-router.get("/collab-requests/:username", async (req, res) => {
-  const { username } = req.params;
-
+// Pending collaboration requests on lists owned by the current user.
+router.get("/me/collab-requests", verifyToken, async (req, res) => {
   try {
     const lists = await List.find({
-      createdBy: username,
+      createdBy: req.user.username,
       "collabRequests.status": "pending",
     });
 
     const requests = [];
-
     lists.forEach((list) => {
       list.collabRequests
         .filter((r) => r.status === "pending")
@@ -176,7 +61,186 @@ router.get("/collab-requests/:username", async (req, res) => {
   }
 });
 
-router.put("/:listId/collab-response", async (req, res) => {
+// Unread answers to collaboration requests the current user sent.
+router.get("/me/notifications", verifyToken, async (req, res) => {
+  const username = req.user.username;
+  try {
+    const lists = await List.find({
+      collabRequests: {
+        $elemMatch: {
+          username,
+          status: { $in: ["accepted", "rejected"] },
+          notified: false,
+        },
+      },
+    });
+
+    const notifications = [];
+    for (const list of lists) {
+      for (const r of list.collabRequests) {
+        if (
+          r.username === username &&
+          ["accepted", "rejected"].includes(r.status) &&
+          !r.notified
+        ) {
+          notifications.push({
+            listId: list._id,
+            listName: list.name,
+            status: r.status,
+          });
+        }
+      }
+    }
+
+    res.json(notifications);
+  } catch (err) {
+    console.error("❌ Bildirimler alınamadı:", err);
+    res.status(500).json({ message: "Bildirim alınırken hata oluştu" });
+  }
+});
+
+router.post("/me/notifications/:listId/read", verifyToken, async (req, res) => {
+  const username = req.user.username;
+  try {
+    const list = await List.findById(req.params.listId);
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    const entries = list.collabRequests.filter(
+      (r) =>
+        r.username === username &&
+        ["accepted", "rejected"].includes(r.status) &&
+        !r.notified
+    );
+    if (entries.length === 0) {
+      return res.status(404).json({ message: "Notification not found" });
+    }
+
+    entries.forEach((r) => {
+      r.notified = true;
+    });
+    await list.save();
+    res.json({ message: "Marked read" });
+  } catch (err) {
+    console.error("Error marking read:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.post("/", verifyToken, async (req, res) => {
+  try {
+    const { name, description, coverImage } = req.body;
+    const newList = new List({
+      name,
+      description,
+      coverImage: isHttpUrl(coverImage) ? coverImage : undefined,
+      createdBy: req.user.username,
+      pins: [],
+    });
+    const saved = await newList.save();
+    res.status(201).json(saved);
+  } catch (err) {
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ message: err.message });
+    }
+    console.error(err);
+    res.status(500).json({ message: "List couldn't be created" });
+  }
+});
+
+async function getPopulatedList(req, res) {
+  try {
+    const list = await List.findById(req.params.listId).populate("pins");
+    if (!list) return res.status(404).json({ message: "List not found" });
+    res.status(200).json(list);
+  } catch (err) {
+    console.error("Liste detay çekme hatası:", err);
+    res.status(500).json({ message: "Error fetching list" });
+  }
+}
+
+router.get("/id/:listId", getPopulatedList);
+router.get("/share/:listId", getPopulatedList);
+
+router.put("/:listId/add-pin", verifyToken, async (req, res) => {
+  try {
+    const { pinId } = req.body;
+    if (!mongoose.isValidObjectId(pinId)) {
+      return res.status(400).json({ message: "Invalid pin id" });
+    }
+
+    const list = await List.findById(req.params.listId);
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    if (!canEdit(list, req.user.username)) {
+      return res.status(403).json({ message: "Not allowed to add pins" });
+    }
+
+    const pin = await Pin.findById(pinId);
+    if (!pin) return res.status(404).json({ message: "Pin not found" });
+
+    list.pins.addToSet(pin._id);
+    const updated = await list.save();
+    const populated = await updated.populate("pins");
+
+    res.json(populated);
+  } catch (err) {
+    console.error("Couldn't add pin to list:", err);
+    res.status(500).json({ message: "Couldn't add pin to list" });
+  }
+});
+
+router.put("/:listId/remove-pin", verifyToken, async (req, res) => {
+  try {
+    const { pinId } = req.body;
+
+    const list = await List.findById(req.params.listId);
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    if (!canEdit(list, req.user.username)) {
+      return res
+        .status(403)
+        .json({ message: "Only the owner or collaborators can edit." });
+    }
+
+    list.pins = list.pins.filter((p) => p.toString() !== String(pinId));
+    const updated = await list.save();
+    const populated = await updated.populate("pins");
+    res.status(200).json(populated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Couldn't remove pin from list" });
+  }
+});
+
+router.put("/:listId/request-collab", verifyToken, async (req, res) => {
+  const username = req.user.username;
+  try {
+    const list = await List.findById(req.params.listId);
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    if (canEdit(list, username)) {
+      return res
+        .status(400)
+        .json({ message: "You can already edit this list" });
+    }
+    if (
+      list.collabRequests.some(
+        (r) => r.username === username && r.status === "pending"
+      )
+    ) {
+      return res.status(400).json({ message: "Already requested" });
+    }
+
+    list.collabRequests.push({ username, status: "pending", notified: false });
+    await list.save();
+    res.status(200).json({ message: "Request sent" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Couldn't send request" });
+  }
+});
+
+router.put("/:listId/collab-response", verifyToken, async (req, res) => {
   const { requester, action } = req.body;
 
   if (!["accepted", "rejected"].includes(action)) {
@@ -187,6 +251,11 @@ router.put("/:listId/collab-response", async (req, res) => {
     const list = await List.findById(req.params.listId);
     if (!list) {
       return res.status(404).json({ message: "List not found" });
+    }
+    if (list.createdBy !== req.user.username) {
+      return res
+        .status(403)
+        .json({ message: "Only the list owner can respond to requests" });
     }
 
     const reqEntry = list.collabRequests.find(
@@ -213,93 +282,55 @@ router.put("/:listId/collab-response", async (req, res) => {
   }
 });
 
-router.put("/collab-requests/respond", async (req, res) => {
-  const { listId, username, action, owner } = req.body;
-
-  if (!["accepted", "rejected"].includes(action)) {
-    return res.status(400).json({ message: "Invalid action" });
-  }
+router.put("/:listId/like", verifyToken, async (req, res) => {
+  const username = req.user.username;
 
   try {
-    const list = await List.findById(listId);
+    const list = await List.findById(req.params.listId);
     if (!list) return res.status(404).json({ message: "List not found" });
 
-    if (list.createdBy !== owner) {
+    if (list.likedBy.includes(username)) {
+      list.likes = Math.max(0, list.likes - 1);
+      list.likedBy = list.likedBy.filter((u) => u !== username);
+    } else {
+      list.likes++;
+      list.likedBy.push(username);
+    }
+
+    await list.save();
+    res.json({ likes: list.likes, likedBy: list.likedBy });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.put("/:listId", verifyToken, async (req, res) => {
+  try {
+    const { name, description, coverImage } = req.body;
+
+    const list = await List.findById(req.params.listId);
+    if (!list) return res.status(404).json({ message: "List not found" });
+
+    if (!canEdit(list, req.user.username)) {
       return res
         .status(403)
-        .json({ message: "Only list owner can respond to requests" });
+        .json({ message: "Only the owner or collaborators can edit." });
     }
 
-    const request = list.collabRequests.find((r) => r.username === username);
-    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (name !== undefined && String(name).trim()) list.name = name;
+    if (description !== undefined) list.description = description;
+    if (isHttpUrl(coverImage)) list.coverImage = coverImage;
 
-    request.status = action;
-    request.notified = false;
-
-    if (action === "accepted" && !list.collaborators.includes(username)) {
-      list.collaborators.push(username);
-    }
-
-    await list.save();
-    res.status(200).json({ message: `Request ${action}` });
+    const updated = await list.save();
+    // Return pins populated so the client can render the list right away.
+    res.status(200).json(await updated.populate("pins"));
   } catch (err) {
-    console.error("❌ Collab response error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.get("/notifications/:username", async (req, res) => {
-  try {
-    const lists = await List.find({
-      "collabRequests.username": req.params.username,
-      "collabRequests.status": { $in: ["accepted", "rejected"] },
-      "collabRequests.notified": false,
-    });
-
-    const notifications = [];
-
-    for (const list of lists) {
-      for (const r of list.collabRequests) {
-        if (
-          r.username === req.params.username &&
-          ["accepted", "rejected"].includes(r.status) &&
-          !r.notified
-        ) {
-          notifications.push({
-            listId: list._id,
-            listName: list.name,
-            status: r.status,
-          });
-        }
-      }
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ message: err.message });
     }
-
-    res.json(notifications);
-  } catch (err) {
-    console.error("❌ Bildirimler alınamadı:", err);
-    res.status(500).json({ message: "Bildirim alınırken hata oluştu" });
-  }
-});
-
-router.post("/notifications/mark-read", async (req, res) => {
-  const { username, listId } = req.body;
-  try {
-    const list = await List.findById(listId);
-    if (!list) return res.status(404).json({ message: "List not found" });
-
-    const reqEntry = list.collabRequests.find(
-      (r) => r.username === username && !r.notified
-    );
-    if (!reqEntry) {
-      return res.status(404).json({ message: "Notification not found" });
-    }
-
-    reqEntry.notified = true;
-    await list.save();
-    res.json({ message: "Marked read" });
-  } catch (err) {
-    console.error("Error marking read:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Couldn't update list:", err);
+    res.status(500).json({ message: "Couldn't update list" });
   }
 });
 
@@ -314,69 +345,59 @@ router.get("/:username", async (req, res) => {
 
     res.status(200).json(lists);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Couldn't get lists" });
   }
 });
-router.get("/share/:listId", async (req, res) => {
-  try {
-    const list = await List.findById(req.params.listId).populate("pins");
-    if (!list) return res.status(404).json({ message: "List not found" });
-    res.status(200).json(list);
-  } catch (err) {
-    console.error("Error fetching shared list:", err);
-    res.status(500).json({ message: "Error fetching shared list" });
+
+router.post("/:listId/comments", verifyToken, async (req, res) => {
+  const { text } = req.body;
+  if (!text || !String(text).trim()) {
+    return res.status(400).json({ message: "Comment text is required" });
   }
-});
-router.post("/:listId/comments", async (req, res) => {
-  const { listId } = req.params;
-  const { username, text } = req.body;
 
   try {
-    const list = await List.findById(listId);
+    const list = await List.findById(req.params.listId);
     if (!list) {
       return res.status(404).json({ message: "List not found" });
     }
 
-    list.comments.unshift({ username, text });
+    list.comments.unshift({ username: req.user.username, text });
     await list.save();
-    const savedComment = list.comments[0];
-    if (!savedComment._id) {
-      return res.status(500).json({ message: "Comment save failed" });
-    }
-    res.status(201).json(savedComment);
+    res.status(201).json(list.comments[0]);
   } catch (err) {
-    res.status(500).json({ message: "Couldn't add comment", error: err });
+    if (err.name === "ValidationError") {
+      return res.status(400).json({ message: err.message });
+    }
+    console.error(err);
+    res.status(500).json({ message: "Couldn't add comment" });
   }
 });
 
 router.get("/:listId/comments", async (req, res) => {
-  const { listId } = req.params;
-
   try {
-    const list = await List.findById(listId);
+    const list = await List.findById(req.params.listId);
     if (!list) {
       return res.status(404).json({ message: "List not found" });
     }
     res.json(list.comments);
   } catch (err) {
-    res.status(500).json({ message: "Couldn't fetch comments", error: err });
+    console.error(err);
+    res.status(500).json({ message: "Couldn't fetch comments" });
   }
 });
 
-router.delete("/:listId/comments/:commentId", async (req, res) => {
+router.delete("/:listId/comments/:commentId", verifyToken, async (req, res) => {
   const { listId, commentId } = req.params;
-  const { username } = req.body;
 
   try {
     const list = await List.findById(listId);
-
     if (!list) return res.status(404).json({ message: "List not found" });
 
     const comment = list.comments.id(commentId);
-
     if (!comment) return res.status(404).json({ message: "Comment not found" });
 
-    if (comment.username !== username) {
+    if (comment.username !== req.user.username) {
       return res
         .status(403)
         .json({ message: "You can only delete your own comment" });
@@ -386,30 +407,6 @@ router.delete("/:listId/comments/:commentId", async (req, res) => {
     await list.save();
 
     res.json({ message: "Comment deleted" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-router.put("/:listId/like", verifyToken, async (req, res) => {
-  const { username } = req.body;
-
-  try {
-    const list = await List.findById(req.params.listId);
-    if (!list) return res.status(404).json({ message: "List not found" });
-
-    const alreadyLiked = list.likedBy.includes(username);
-
-    if (alreadyLiked) {
-      list.likes--;
-      list.likedBy = list.likedBy.filter((u) => u !== username);
-    } else {
-      list.likes++;
-      list.likedBy.push(username);
-    }
-
-    await list.save();
-    res.json({ likes: list.likes, likedBy: list.likedBy });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

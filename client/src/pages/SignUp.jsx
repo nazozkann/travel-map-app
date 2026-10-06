@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { api } from "../utils/api";
 
 export default function SignUp() {
   const [form, setForm] = useState({ email: "", username: "", password: "" });
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -12,28 +14,16 @@ export default function SignUp() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+    setError("");
     try {
-      const res = await fetch(
-        import.meta.env.VITE_API_URL + "/api/auth/register",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.message || "Signup failed");
-        return;
-      }
-
+      await api("/api/auth/register", { method: "POST", body: form });
       alert("Account created. You can now log in.");
       navigate("/auth");
     } catch (err) {
       console.error("Signup error:", err);
-      setError("Something went wrong. Please try again.");
+      setError(err.message || "Something went wrong. Please try again.");
+      setSubmitting(false);
     }
   };
 
@@ -45,6 +35,7 @@ export default function SignUp() {
           type="email"
           name="email"
           placeholder="Email"
+          autoComplete="email"
           value={form.email}
           onChange={handleChange}
           required
@@ -53,6 +44,11 @@ export default function SignUp() {
           type="text"
           name="username"
           placeholder="Username"
+          autoComplete="username"
+          minLength={3}
+          maxLength={20}
+          pattern="[a-zA-Z0-9_.\-]+"
+          title="3-20 characters: letters, numbers, _ . -"
           value={form.username}
           onChange={handleChange}
           required
@@ -60,12 +56,16 @@ export default function SignUp() {
         <input
           type="password"
           name="password"
-          placeholder="Password"
+          placeholder="Password (min. 6 characters)"
+          autoComplete="new-password"
+          minLength={6}
           value={form.password}
           onChange={handleChange}
           required
         />
-        <button type="submit">Register</button>
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Creating account..." : "Register"}
+        </button>
         {error && <p className="error-text">{error}</p>}
       </form>
       <p className="auth-toggle-text">

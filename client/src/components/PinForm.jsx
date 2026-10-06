@@ -1,5 +1,25 @@
 import { useState } from "react";
+import { categories } from "../utils/categories";
+import { tags } from "../utils/tags";
+import { api } from "../utils/api";
+import uploadImage from "../utils/uploadImage";
 import "../styles/Main.css";
+
+async function getCityFromCoords(lat, lon) {
+  const key = import.meta.env.VITE_GEOAPIFY_API_KEY;
+  if (!key) return "Unknown";
+  try {
+    const res = await fetch(
+      `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${key}`
+    );
+    if (!res.ok) return "Unknown";
+    const data = await res.json();
+    const props = data.features?.[0]?.properties;
+    return props?.city || props?.county || props?.state || "Unknown";
+  } catch {
+    return "Unknown";
+  }
+}
 
 export default function PinForm({ lat, lng, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -7,123 +27,64 @@ export default function PinForm({ lat, lng, onSuccess }) {
     category: "",
     description: "",
     tags: [],
+    image: null,
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   function handleChange(e) {
     const { name, value, files } = e.target;
-    if (name === "image") {
-      setFormData((prev) => ({
-        ...prev,
-        image: files[0],
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "image" ? files[0] || null : value,
+    }));
   }
 
   function handleTagsChange(e) {
     const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
     setFormData((prev) => ({ ...prev, tags: selected }));
   }
-  async function getCityFromCoords(lat, lon) {
-    const res = await fetch(
-      `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${
-        import.meta.env.VITE_GEOAPIFY_API_KEY
-      }`
-    );
-    const data = await res.json();
-    return data.features?.[0]?.properties?.city || "Unknown";
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const username = localStorage.getItem("username") || "anonim";
+    setSubmitting(true);
+    setError("");
 
-    const lat = e.target.lat.value;
-    const lng = e.target.lng.value;
+    try {
+      const [city, imageUrl] = await Promise.all([
+        getCityFromCoords(lat, lng),
+        formData.image ? uploadImage(formData.image) : undefined,
+      ]);
 
-    const city = await getCityFromCoords(lat, lng);
-
-    const jsonBody = {
-      title: formData.title,
-      category: formData.category,
-      description: formData.description,
-      tags: formData.tags,
-      latitude: lat.toString(),
-      longitude: lng.toString(),
-      createdBy: username,
-      city,
-    };
-
-    const res = await fetch(import.meta.env.VITE_API_URL + "/api/pins", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(jsonBody),
-    });
-
-    if (!res.ok) {
-      const errMsg = await res.text();
-      console.error("⛔ Sunucu cevabı:", errMsg);
-      alert("Pin kaydedilirken hata oluştu");
-      return;
+      const newPin = await api("/api/pins", {
+        method: "POST",
+        auth: true,
+        body: {
+          title: formData.title,
+          category: formData.category,
+          description: formData.description,
+          tags: formData.tags,
+          latitude: lat,
+          longitude: lng,
+          imageUrl,
+          city,
+        },
+      });
+      onSuccess(newPin);
+    } catch (err) {
+      console.error("⛔ Pin kaydedilemedi:", err);
+      setError(err.message || "Couldn't save the pin");
+      setSubmitting(false);
     }
-
-    const newPin = await res.json();
-    onSuccess(newPin);
   }
 
-  // async function handleSubmit(e) {
-  //   e.preventDefault();
-
-  //   const data = new FormData();
-  //   data.append("title", formData.title);
-  //   data.append("category", formData.category);
-  //   data.append("description", formData.description);
-  //   data.append("createdBy", "testuser");
-
-  //   if (formData.tags.length) {
-  //     data.append("tags", JSON.stringify(formData.tags));
-  //   }
-
-  //   if (formData.image) {
-  //     data.append("image", formData.image);
-  //   }
-
-  //   try {
-  //     const res = await fetch(import.meta.env.VITE_API_URL + "/api/pins", {
-  //       method: "POST",
-  //       body: data,
-  //     });
-  //     const result = await res.json();
-  //     console.log("✅ Pin eklendi:", result);
-
-  //     setFormData({
-  //       title: "",
-  //       category: "",
-  //       description: "",
-  //       image: null,
-  //       tags: [],
-  //     });
-  //   } catch (err) {
-  //     console.error("❌ Hata oluştu:", err);
-  //   }
-  // }
-
   return (
-    <form
-      id="pin-form"
-      className="pin-form"
-      onSubmit={handleSubmit}
-      // onSubmit={handleSubmit}
-      // encType="multipart/form-data"
-    >
+    <form id="pin-form" className="pin-form" onSubmit={handleSubmit}>
       <input
         type="text"
         name="title"
         placeholder="title"
+        maxLength={120}
         required
         onChange={handleChange}
       />
@@ -131,15 +92,15 @@ export default function PinForm({ lat, lng, onSuccess }) {
         name="category"
         id="pin-category"
         required
+        value={formData.category}
         onChange={handleChange}
       >
         <option value="">Select category</option>
-        <option value="food-drink">Food & Drink</option>
-        <option value="cultural">Cultural</option>
-        <option value="accommodation">Accommodation</option>
-        <option value="entertainment">Entertainment</option>
-        <option value="nature">Nature</option>
-        <option value="other">Other</option>
+        {categories.map((c) => (
+          <option key={c.key} value={c.key}>
+            {c.label}
+          </option>
+        ))}
       </select>
       <label>
         Tags
@@ -149,20 +110,17 @@ export default function PinForm({ lat, lng, onSuccess }) {
           value={formData.tags}
           onChange={handleTagsChange}
         >
-          <option value="free">Free</option>
-          <option value="$">$</option>
-          <option value="$$">$$</option>
-          <option value="$$$">$$$</option>
-          <option value="touristic">Touristic</option>
-          <option value="local">Local</option>
-          <option value="new">New</option>
-          <option value="crowded">Crowded</option>
-          <option value="quiet">Quiet</option>
+          {tags.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
         </select>
       </label>
       <textarea
         name="description"
         placeholder="description"
+        maxLength={2000}
         required
         onChange={handleChange}
       ></textarea>
@@ -173,8 +131,9 @@ export default function PinForm({ lat, lng, onSuccess }) {
         accept="image/*"
         onChange={handleChange}
       />
-      <button id="form-submit" type="submit">
-        Submit
+      {error && <p className="error-text">{error}</p>}
+      <button id="form-submit" type="submit" disabled={submitting}>
+        {submitting ? "Saving..." : "Submit"}
       </button>
     </form>
   );

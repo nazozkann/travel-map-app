@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/Main.css";
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
-import { categories } from "../utils/categories";
+import { categories, categoryLabel } from "../utils/categories";
+import { api } from "../utils/api";
 
-function wilsonScore(likes, dislikes) {
+// Lower bound of the Wilson score interval: ranks by approval while
+// accounting for how many votes a place has.
+function wilsonScore(likes = 0, dislikes = 0) {
   const n = likes + dislikes;
   if (n === 0) return 0;
   const z = 1.96;
@@ -17,52 +20,67 @@ function wilsonScore(likes, dislikes) {
   );
 }
 
+const truncate = (text = "", max = 80) =>
+  text.length > max ? `${text.slice(0, max)}...` : text;
+
 export default function BestPlaces() {
   const [pins, setPins] = useState([]);
-  const [view, setView] = useState(null);
   const [lists, setLists] = useState([]);
+  const [view, setView] = useState("places");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedCategories, setSelectedCategories] = useState(
     categories.map((cat) => cat.key)
   );
   const [searchCity, setSearchCity] = useState("");
 
   useEffect(() => {
-    fetch(import.meta.env.VITE_API_URL + "/api/pins")
-      .then((res) => res.json())
-      .then((data) => {
-        const sorted = data
-          .slice()
-          .sort(
-            (a, b) =>
-              wilsonScore(b.likes, b.dislikes) -
-              wilsonScore(a.likes, a.dislikes)
-          );
-        setPins(sorted);
-      });
-
-    fetch(import.meta.env.VITE_API_URL + "/api/lists/all")
-      .then((res) => res.json())
-      .then((data) => {
-        const sorted = data
-          .slice()
-          .sort((a, b) => (b.pins?.length || 0) - (a.pins?.length || 0));
-        setLists(sorted);
-      });
-    setView("places");
+    Promise.all([api("/api/pins"), api("/api/lists/all")])
+      .then(([pinData, listData]) => {
+        setPins(
+          pinData
+            .slice()
+            .sort(
+              (a, b) =>
+                wilsonScore(b.likes, b.dislikes) -
+                wilsonScore(a.likes, a.dislikes)
+            )
+        );
+        setLists(
+          listData
+            .slice()
+            .sort((a, b) => (b.pins?.length || 0) - (a.pins?.length || 0))
+        );
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Couldn't load places. Please try again later.");
+      })
+      .finally(() => setLoading(false));
   }, []);
-  const filteredPins = pins.filter(
-    (pin) =>
-      selectedCategories.includes(pin.category) &&
-      (!searchCity ||
-        pin.city?.toLowerCase().includes(searchCity.toLowerCase()))
+
+  const city = searchCity.trim().toLowerCase();
+
+  const filteredPins = useMemo(
+    () =>
+      pins.filter(
+        (pin) =>
+          selectedCategories.includes(pin.category) &&
+          (!city || pin.city?.toLowerCase().includes(city))
+      ),
+    [pins, selectedCategories, city]
   );
-  const filteredLists = lists.filter((list) =>
-    list.pins?.some(
-      (pin) =>
-        (!searchCity ||
-          pin.city?.toLowerCase().includes(searchCity.toLowerCase())) &&
-        selectedCategories.includes(pin.category)
-    )
+  const filteredLists = useMemo(
+    () =>
+      lists.filter((list) =>
+        list.pins?.some(
+          (pin) =>
+            pin &&
+            selectedCategories.includes(pin.category) &&
+            (!city || pin.city?.toLowerCase().includes(city))
+        )
+      ),
+    [lists, selectedCategories, city]
   );
 
   function toggleCategory(catKey) {
@@ -73,14 +91,16 @@ export default function BestPlaces() {
     );
   }
   function toggleAllCategories() {
-    if (selectedCategories.length === categories.length) {
-      setSelectedCategories([categories[0].key]);
-    } else {
-      setSelectedCategories(categories.map((cat) => cat.key));
-    }
+    setSelectedCategories((prev) =>
+      prev.length === categories.length ? [] : categories.map((cat) => cat.key)
+    );
   }
 
-  if (view === null) return <p>Loading...</p>;
+  if (loading) return <p className="page-status">Loading...</p>;
+  if (error) return <p className="page-status">{error}</p>;
+
+  const results = view === "places" ? filteredPins : filteredLists;
+
   return (
     <div className="places-container">
       <div className="places-tabs">
@@ -100,6 +120,7 @@ export default function BestPlaces() {
           <input
             type="text"
             placeholder="Search by city..."
+            aria-label="Search by city"
             value={searchCity}
             onChange={(e) => setSearchCity(e.target.value)}
             className="search-input"
@@ -107,44 +128,46 @@ export default function BestPlaces() {
         </div>
       </div>
 
-      {view === "places" && (
-        <div className="category-filter-bar">
-          {categories.map((cat) => (
-            <button
-              key={cat.key}
-              className={`category-btn-${cat.key} category-btn-small ${
-                selectedCategories.includes(cat.key) ? "active" : ""
-              }`}
-              onClick={() => toggleCategory(cat.key)}
-            >
-              {cat.icon ? (
-                <img
-                  src={`/assets/icons/${cat.icon.displayName}.svg`}
-                  alt={cat.key}
-                  className="category-icon"
-                />
-              ) : (
-                cat.key
-              )}
-            </button>
-          ))}
-
+      <div className="category-filter-bar">
+        {categories.map((cat) => (
           <button
-            id="category-btn-small-delete"
-            className={`category-btn-small ${
-              selectedCategories.length === categories.length ? "active" : ""
+            key={cat.key}
+            title={cat.label}
+            aria-label={cat.label}
+            aria-pressed={selectedCategories.includes(cat.key)}
+            className={`category-btn-${cat.key} category-btn-small ${
+              selectedCategories.includes(cat.key) ? "active" : ""
             }`}
-            onClick={toggleAllCategories}
-            style={{ fontWeight: "bold", fontSize: "1rem" }}
+            onClick={() => toggleCategory(cat.key)}
           >
-            {selectedCategories.length === categories.length ? "X" : "+"}
+            <img src={cat.icon} alt="" className="category-icon" />
           </button>
-        </div>
+        ))}
+
+        <button
+          id="category-btn-small-delete"
+          className={`category-btn-small ${
+            selectedCategories.length === categories.length ? "active" : ""
+          }`}
+          onClick={toggleAllCategories}
+          title={
+            selectedCategories.length === categories.length
+              ? "Clear categories"
+              : "Select all categories"
+          }
+          style={{ fontWeight: "bold", fontSize: "1rem" }}
+        >
+          {selectedCategories.length === categories.length ? "X" : "+"}
+        </button>
+      </div>
+
+      {results.length === 0 && (
+        <p className="page-status">No {view} match your filters.</p>
       )}
 
-      <div className="places-list">
-        {view === "places" &&
-          filteredPins.map((pin) => (
+      {view === "places" && (
+        <div className="places-list">
+          {filteredPins.map((pin) => (
             <Link
               to={`/places/${pin._id}`}
               key={pin._id}
@@ -157,9 +180,9 @@ export default function BestPlaces() {
               )}
               <h3>{pin.title}</h3>
               <p>
-                <strong>Category:</strong> {pin.category}
+                <strong>Category:</strong> {categoryLabel(pin.category)}
               </p>
-              <p>{pin.description?.slice(0, 80)}...</p>
+              <p>{truncate(pin.description)}</p>
               <p>
                 <IoIosThumbsUp style={{ width: "1.25rem", height: "auto" }} />{" "}
                 {pin.likes} &nbsp;{" "}
@@ -168,10 +191,11 @@ export default function BestPlaces() {
               </p>
             </Link>
           ))}
-      </div>
-      <div className="lists-list">
-        {view === "lists" &&
-          filteredLists.map((list) => (
+        </div>
+      )}
+      {view === "lists" && (
+        <div className="lists-list">
+          {filteredLists.map((list) => (
             <Link
               to={`/lists/${list._id}`}
               key={list._id}
@@ -186,10 +210,11 @@ export default function BestPlaces() {
                 <h3>{list.name}</h3>
               </div>
               <p className="list-description">{list.description}</p>
-              <p>{list.pins?.length || 0} places</p>
+              <p>{list.pins?.filter(Boolean).length || 0} places</p>
             </Link>
           ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

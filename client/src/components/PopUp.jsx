@@ -1,4 +1,6 @@
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
+import { categoryLabel } from "../utils/categories";
+
 export default function PopUp({
   title,
   category,
@@ -34,22 +36,24 @@ export default function PopUp({
         </div>
       )}
       <span className="category">
-        <img
-          className="popup-icon"
-          src={`/assets/icons/${category}.svg`}
-          alt={category}
-        />
-
-        {category || "no category"}
+        {category && (
+          <img
+            className="popup-icon"
+            src={`/assets/icons/${category}.svg`}
+            alt=""
+          />
+        )}
+        {category ? categoryLabel(category) : "no category"}
       </span>
       <p>{description || "no description"}</p>
       <div className="popup-like">
         <span>
-          <IoIosThumbsUp style={{ width: "1rem", height: "auto" }} /> {likes}
+          <IoIosThumbsUp style={{ width: "1rem", height: "auto" }} />{" "}
+          {likes ?? 0}
         </span>
         <span>
           <IoIosThumbsDown style={{ width: "1rem", height: "auto" }} />{" "}
-          {dislikes}
+          {dislikes ?? 0}
         </span>
       </div>
     </div>

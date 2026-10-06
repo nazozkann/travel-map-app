@@ -51,36 +51,50 @@ export default function CategoryFilter({
   return (
     <div className="category-filter-container">
       <div className="category-filter">
-        {categories.map(({ key, icon }) => (
+        {categories.map(({ key, label, icon }) => (
           <button
             key={key}
+            type="button"
+            title={label}
+            aria-label={label}
+            aria-pressed={selectedCategories.includes(key)}
             className={`category-btn category-btn-${key} ${
               selectedCategories.includes(key) ? "active" : ""
             }`}
             onClick={(e) => toggleCategory(e, key)}
           >
-            <img
-              src={`/assets/icons/${icon.displayName}.svg`}
-              alt={key}
-              className="category-icon"
-            />
+            <img src={icon} alt="" className="category-icon" />
           </button>
         ))}
-        <button className="turn-off-all" onClick={toggleAllCategories}></button>
         <button
+          type="button"
+          className="turn-off-all"
+          title="Toggle all categories"
+          aria-label="Toggle all categories"
+          onClick={toggleAllCategories}
+        ></button>
+        <button
+          type="button"
           onClick={() => setShowTags((prev) => !prev)}
           className="toggle-tags-btn"
+          title={showTags ? "Hide tags" : "Show tags"}
+          aria-label={showTags ? "Hide tags" : "Show tags"}
+          aria-expanded={showTags}
         >
           {!isMobile ? (showTags ? "Hide" : "Show") : null}
         </button>
 
-        <div
-          className={`add-pin-button ${isAdding ? "adding" : ""}`}
-          onClick={() => setIsAdding((prev) => !prev)}
-          title={isAdding ? "Cancel add-pin mode" : "Enter add-pin mode"}
-        >
-          {isAdding ? "x" : "+"}
-        </div>
+        {setIsAdding && (
+          <button
+            type="button"
+            className={`add-pin-button ${isAdding ? "adding" : ""}`}
+            onClick={() => setIsAdding((prev) => !prev)}
+            title={isAdding ? "Cancel add-pin mode" : "Enter add-pin mode"}
+            aria-label={isAdding ? "Cancel add-pin mode" : "Enter add-pin mode"}
+          >
+            {isAdding ? "x" : "+"}
+          </button>
+        )}
       </div>
 
       {showTags && (
@@ -88,6 +102,8 @@ export default function CategoryFilter({
           {tags.map(({ key, label }) => (
             <button
               key={key}
+              type="button"
+              aria-pressed={selectedTags.includes(key)}
               className={`tag tag-${key} ${
                 selectedTags.includes(key) ? "active" : ""
               }`}
@@ -96,7 +112,13 @@ export default function CategoryFilter({
               {label}
             </button>
           ))}
-          <button className="turn-off-all" onClick={toggleAllTags}></button>
+          <button
+            type="button"
+            className="turn-off-all"
+            title="Toggle all tags"
+            aria-label="Toggle all tags"
+            onClick={toggleAllTags}
+          ></button>
         </div>
       )}
     </div>

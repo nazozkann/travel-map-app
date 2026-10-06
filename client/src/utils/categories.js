@@ -1,37 +1,11 @@
-import {
-  Utensils,
-  Landmark,
-  Hotel,
-  PartyPopper,
-  TreePine,
-  MapPin,
-} from "lucide-react";
-
 export const categories = [
-  {
-    key: "food-drink",
-    label: "Food & Drink",
-    icon: Utensils,
-    darkIcon: "UtensilsDark",
-  },
-  {
-    key: "cultural",
-    label: "Cultural",
-    icon: Landmark,
-    darkIcon: "LandmarkDark",
-  },
-  {
-    key: "accommodation",
-    label: "Accommodation",
-    icon: Hotel,
-    darkIcon: "HotelDark",
-  },
-  {
-    key: "entertainment",
-    label: "Entertainment",
-    icon: PartyPopper,
-    darkIcon: "PartyPopperDark",
-  },
-  { key: "nature", label: "Nature", icon: TreePine, darkIcon: "TreePineDark" },
-  { key: "other", label: "Other", icon: MapPin, darkIcon: "MapPinDark" },
+  { key: "food-drink", label: "Food & Drink", icon: "/assets/icons/Utensils.svg" },
+  { key: "cultural", label: "Cultural", icon: "/assets/icons/Landmark.svg" },
+  { key: "accommodation", label: "Accommodation", icon: "/assets/icons/Hotel.svg" },
+  { key: "entertainment", label: "Entertainment", icon: "/assets/icons/PartyPopper.svg" },
+  { key: "nature", label: "Nature", icon: "/assets/icons/TreePine.svg" },
+  { key: "other", label: "Other", icon: "/assets/icons/MapPin.svg" },
 ];
+
+export const categoryLabel = (key) =>
+  categories.find((c) => c.key === key)?.label || key;

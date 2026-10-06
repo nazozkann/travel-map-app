@@ -1,57 +1,37 @@
-import { useEffect, useRef, useState } from "react";
-import maplibregl, { LngLatBounds } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
-import { renderToString } from "react-dom/server";
-import PopUp from "./PopUp";
-import getMarkerElement from "../utils/getMarkerElement";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as maplibregl from "maplibre-gl";
 import { useNavigate } from "react-router-dom";
 import CategoryFilter from "./CategoryFilter";
 import { categories } from "../utils/categories";
+import useMapInstance from "../hooks/useMapInstance";
+import { createPinMarkers } from "../utils/pinMarkers";
+import filterPins from "../utils/filterPins";
+
+const getInitialView = () => ({ center: [28.9744, 41.0082], zoom: 4 });
 
 export default function ListMap({ pins }) {
   const mapRef = useRef(null);
-  const mapInstance = useRef(null);
+  const markersRef = useRef(null);
+  const boundsFittedRef = useRef(false);
   const [selectedCategories, setSelectedCategories] = useState(
     categories.map((cat) => cat.key)
   );
   const [selectedTags, setSelectedTags] = useState([]);
   const [showTags, setShowTags] = useState(false);
   const navigate = useNavigate();
-  const markersRef = useRef([]);
 
-  const boundsFittedRef = useRef(false);
+  const map = useMapInstance(mapRef, getInitialView);
 
-  const lightMapStyle = `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
-    import.meta.env.VITE_MAPTILER_API_KEY
-  }`;
-  const darkMapStyle = `https://api.maptiler.com/maps/0196bac3-e637-7c87-b191-32cc9b5b086a/style.json?key=${
-    import.meta.env.VITE_MAPTILER_API_KEY
-  }`;
+  const visiblePins = useMemo(
+    () => filterPins(pins || [], selectedCategories, selectedTags),
+    [pins, selectedCategories, selectedTags]
+  );
 
   useEffect(() => {
-    if (mapRef.current && !mapInstance.current) {
-      const savedTheme = localStorage.getItem("theme");
-      const selectedStyle =
-        savedTheme === "dark" ? darkMapStyle : lightMapStyle;
-      const instance = new maplibregl.Map({
-        container: mapRef.current,
-        style: selectedStyle,
-        center: [28.9744, 41.0082],
-        zoom: 4,
-      });
-      window.listMapInstance = instance;
-      mapInstance.current = instance;
-    }
-  }, []);
-
-  useEffect(() => {
-    const map = mapInstance.current;
     if (!map || !pins || pins.length === 0 || boundsFittedRef.current) return;
 
-    // Harita yüklendiyse doğrudan çalıştır
     const fitMapToPins = () => {
       const bounds = new maplibregl.LngLatBounds();
-
       pins.forEach((pin) => {
         if (
           typeof pin.longitude === "number" &&
@@ -62,11 +42,7 @@ export default function ListMap({ pins }) {
       });
 
       if (!bounds.isEmpty()) {
-        map.fitBounds(bounds, {
-          padding: 50,
-          duration: 1000,
-          maxZoom: 14,
-        });
+        map.fitBounds(bounds, { padding: 50, duration: 1000, maxZoom: 14 });
         boundsFittedRef.current = true;
       }
     };
@@ -75,69 +51,27 @@ export default function ListMap({ pins }) {
       fitMapToPins();
     } else {
       map.once("load", fitMapToPins);
+      return () => map.off("load", fitMapToPins);
     }
-  }, [pins]);
+  }, [map, pins]);
 
   useEffect(() => {
-    const map = mapInstance.current;
-    if (!map || !pins) return;
-
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
-
-    pins.forEach((pin) => {
-      if (
-        selectedCategories.length > 0 &&
-        !selectedCategories.includes(pin.category)
-      ) {
-        return;
-      }
-
-      const allTags = selectedTags.length === 0;
-      const hasTag = Array.isArray(pin.tags)
-        ? pin.tags.some((t) => selectedTags.includes(t))
-        : false;
-      if (!allTags && !hasTag) {
-        return;
-      }
-
-      const html = renderToString(
-        <PopUp
-          id={pin._id}
-          title={pin.title}
-          category={pin.category}
-          description={pin.description}
-          createdBy={pin.createdBy}
-          likes={pin.likes}
-          dislikes={pin.dislikes}
-          imageUrl={pin.imageUrl}
-        />
-      );
-
-      const el = getMarkerElement(pin.category);
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([pin.longitude, pin.latitude])
-        .addTo(map);
-
-      marker
-        .getElement()
-        .addEventListener("mouseenter", () =>
-          new maplibregl.Popup({ offset: 25, closeButton: false })
-            .setLngLat([pin.longitude, pin.latitude])
-            .setHTML(html)
-            .addTo(map)
-        );
-      marker.getElement().addEventListener("mouseleave", () => {
-        const popups = document.getElementsByClassName("maplibregl-popup");
-        if (popups.length) popups[0].remove();
-      });
-      marker
-        .getElement()
-        .addEventListener("click", () => navigate(`/places/${pin._id}`));
-
-      markersRef.current.push(marker);
+    if (!map) return;
+    markersRef.current = createPinMarkers(map, {
+      onOpen: (pin) => navigate(`/places/${pin._id}`),
     });
-  }, [pins, selectedCategories, selectedTags, navigate]);
+    return () => {
+      markersRef.current.destroy();
+      markersRef.current = null;
+    };
+  }, [map, navigate]);
+
+  useEffect(() => {
+    const markers = markersRef.current;
+    if (!markers) return;
+    markers.clear();
+    visiblePins.forEach((pin) => markers.add(pin));
+  }, [visiblePins, map]);
 
   return (
     <div>

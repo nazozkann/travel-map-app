@@ -1,68 +1,67 @@
 import { useEffect } from "react";
 
-export default function useDragScroll(ref) {
+const DRAG_THRESHOLD = 5;
+
+// Click-and-drag horizontal scrolling for mouse users. Touch devices keep native scrolling.
+// Pass `active` so the listeners attach when the element is conditionally rendered.
+export default function useDragScroll(ref, active = true) {
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || !active) return;
 
     let isDown = false;
-    let startX;
-    let scrollLeft;
+    let moved = false;
+    let startX = 0;
+    let scrollLeft = 0;
 
     const mouseDown = (e) => {
+      if (e.button !== 0) return;
       isDown = true;
-      el.classList.add("dragging");
-      startX = e.pageX - el.offsetLeft;
+      moved = false;
+      startX = e.pageX;
       scrollLeft = el.scrollLeft;
     };
 
-    const mouseLeave = () => {
-      isDown = false;
-      el.classList.remove("dragging");
-    };
-
-    const mouseUp = () => {
+    const stop = () => {
       isDown = false;
       el.classList.remove("dragging");
     };
 
     const mouseMove = (e) => {
       if (!isDown) return;
+      const walk = e.pageX - startX;
+      if (!moved && Math.abs(walk) < DRAG_THRESHOLD) return;
+      moved = true;
+      el.classList.add("dragging");
       e.preventDefault();
-      const x = e.pageX - el.offsetLeft;
-      const walk = (x - startX) * 1.5;
-      el.scrollLeft = scrollLeft - walk;
+      el.scrollLeft = scrollLeft - walk * 1.5;
     };
 
-
-    let touchStartX = 0;
-    let touchScrollLeft = 0;
-
-    const handleTouchStart = (e) => {
-      touchStartX = e.touches[0].pageX;
-      touchScrollLeft = el.scrollLeft;
+    // Swallow the click that ends a drag so cards don't navigate.
+    const click = (e) => {
+      if (moved) {
+        e.preventDefault();
+        e.stopPropagation();
+        moved = false;
+      }
     };
 
-    const handleTouchMove = (e) => {
-      const x = e.touches[0].pageX;
-      const walk = (x - touchStartX) * 1.5;
-      el.scrollLeft = touchScrollLeft - walk;
-    };
+    const preventImgDrag = (e) => e.preventDefault();
 
     el.addEventListener("mousedown", mouseDown);
-    el.addEventListener("mouseleave", mouseLeave);
-    el.addEventListener("mouseup", mouseUp);
+    el.addEventListener("mouseleave", stop);
+    el.addEventListener("mouseup", stop);
     el.addEventListener("mousemove", mouseMove);
-    el.addEventListener("touchstart", handleTouchStart);
-    el.addEventListener("touchmove", handleTouchMove);
+    el.addEventListener("click", click, true);
+    el.addEventListener("dragstart", preventImgDrag);
 
     return () => {
       el.removeEventListener("mousedown", mouseDown);
-      el.removeEventListener("mouseleave", mouseLeave);
-      el.removeEventListener("mouseup", mouseUp);
+      el.removeEventListener("mouseleave", stop);
+      el.removeEventListener("mouseup", stop);
       el.removeEventListener("mousemove", mouseMove);
-      el.removeEventListener("touchstart", handleTouchStart);
-      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("click", click, true);
+      el.removeEventListener("dragstart", preventImgDrag);
     };
-  }, [ref]);
+  }, [ref, active]);
 }

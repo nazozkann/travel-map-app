@@ -3,25 +3,26 @@ import { useState, useEffect, useRef } from "react";
 import "../styles/Navbar.css";
 import SearchBar from "./SearchBar";
 import { CgDarkMode } from "react-icons/cg";
+import useAuth from "../hooks/useAuth";
+import { api } from "../utils/api";
+import { toggleTheme } from "../utils/theme";
 
 export default function Navbar({ setLocation }) {
   const location = useLocation();
-  const [username, setUsername] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const username = useAuth();
   const [hasNotifications, setHasNotifications] = useState(false);
-  const lightMapStyle = `https://api.maptiler.com/maps/01964971-8ddf-7204-b609-36d18c42b896/style.json?key=${
-    import.meta.env.VITE_MAPTILER_API_KEY
-  }`;
-  const darkMapStyle = `https://api.maptiler.com/maps/0196bac3-e637-7c87-b191-32cc9b5b086a/style.json?key=${
-    import.meta.env.VITE_MAPTILER_API_KEY
-  }`;
   const [menuOpen, setMenuOpen] = useState(false);
 
   const menuRef = useRef();
+  const hamburgerRef = useRef();
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target) &&
+        !hamburgerRef.current?.contains(e.target)
+      ) {
         setMenuOpen(false);
       }
     };
@@ -30,66 +31,25 @@ export default function Navbar({ setLocation }) {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const storedUsername = localStorage.getItem("username");
-    if (token) {
-      setIsLoggedIn(true);
-      setUsername(storedUsername);
-
-      fetch(
-        import.meta.env.VITE_API_URL +
-          `/api/lists/notifications/${storedUsername}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.length > 0) {
-            setHasNotifications(true);
-          } else {
-            setHasNotifications(false);
-          }
-        })
-        .catch((err) => {
-          console.error("Notification fetch failed:", err);
-        });
-
-      fetch(
-        import.meta.env.VITE_API_URL +
-          `/api/lists/collab-requests/${storedUsername}`
-      )
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.length > 0) {
-            setHasNotifications(true);
-          }
-        })
-        .catch(console.error);
-    } else {
-      setIsLoggedIn(false);
+    if (!username) {
+      setHasNotifications(false);
+      return;
     }
-  }, [location.pathname]);
-  const toggleDarkMode = () => {
-    const isDark = document.body.classList.toggle("dark");
-    localStorage.setItem("theme", isDark ? "dark" : "light");
-    if (window.mapInstance) {
-      const newStyle = isDark ? darkMapStyle : lightMapStyle;
-      window.mapInstance.setStyle(newStyle);
-    }
-    if (window.listMapInstance) {
-      const newStyle = isDark ? darkMapStyle : lightMapStyle;
-      window.listMapInstance.setStyle(newStyle);
-    }
-    if (window.detailMapInstance) {
-      const newStyle = isDark ? darkMapStyle : lightMapStyle;
-      window.detailMapInstance.setStyle(newStyle);
-    }
-  };
-
-  useEffect(() => {
-    const saved = localStorage.getItem("theme");
-    if (saved === "dark") {
-      document.body.classList.add("dark");
-    }
-  }, []);
+    let cancelled = false;
+    Promise.all([
+      api("/api/lists/me/notifications", { auth: true }),
+      api("/api/lists/me/collab-requests", { auth: true }),
+    ])
+      .then(([notifications, requests]) => {
+        if (!cancelled) {
+          setHasNotifications(notifications.length > 0 || requests.length > 0);
+        }
+      })
+      .catch((err) => console.error("Notification fetch failed:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [username, location.pathname]);
 
   return (
     <nav className="nav-style">
@@ -100,7 +60,10 @@ export default function Navbar({ setLocation }) {
         <SearchBar onSelectLocation={setLocation} />
       )}
       <button
+        ref={hamburgerRef}
         className="hamburger-btn"
+        aria-label="Toggle menu"
+        aria-expanded={menuOpen}
         onClick={() => setMenuOpen((prev) => !prev)}
       >
         ☰
@@ -111,15 +74,17 @@ export default function Navbar({ setLocation }) {
           Selected
         </Link>
 
-        {isLoggedIn ? (
+        {username ? (
           <div className="nav-profile-wrapper">
             <Link
-              to={`/profile/${username}`}
+              to={`/profile/${encodeURIComponent(username)}`}
               onClick={() => setMenuOpen(false)}
             >
               Profile
             </Link>
-            {hasNotifications && <span className="notification-dot" />}
+            {hasNotifications && (
+              <span className="notification-dot" aria-label="New notifications" />
+            )}
           </div>
         ) : (
           <Link to="/auth" onClick={() => setMenuOpen(false)}>
@@ -129,10 +94,12 @@ export default function Navbar({ setLocation }) {
 
         <button
           onClick={() => {
-            toggleDarkMode();
+            toggleTheme();
             setMenuOpen(false);
           }}
           className="theme-toggle-btn"
+          aria-label="Toggle dark mode"
+          title="Toggle dark mode"
         >
           <CgDarkMode />
         </button>

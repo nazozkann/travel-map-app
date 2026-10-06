@@ -1,21 +1,27 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import DetailMap from "../components/DetailMap";
-import { useNavigate } from "react-router-dom";
+import NotFound from "./NotFound";
 import { Plus } from "lucide-react";
 import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
-
-const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+import { api } from "../utils/api";
+import useAuth from "../hooks/useAuth";
+import uploadImage from "../utils/uploadImage";
+import { categories, categoryLabel } from "../utils/categories";
+import { tags as allTags } from "../utils/tags";
+import formatDate from "../utils/formatDate";
 
 export default function PinDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const username = useAuth();
   const [pin, setPin] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     title: "",
     category: "",
@@ -27,198 +33,203 @@ export default function PinDetail() {
   const [newListName, setNewListName] = useState("");
   const [showListFields, setShowListFields] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [coverImage, setCoverImage] = useState(null);
   const [extraImages, setExtraImages] = useState([]);
 
   useEffect(() => {
-    const username = localStorage.getItem("username");
-    if (username) {
-      fetch(import.meta.env.VITE_API_URL + `/api/lists/${username}`)
-        .then((res) => res.json())
-        .then((data) => setLists(data));
+    if (!username) {
+      setLists([]);
+      return;
     }
-  }, []);
+    api(`/api/lists/${encodeURIComponent(username)}`)
+      .then((data) =>
+        // Only lists the user can actually add pins to.
+        setLists(
+          data.filter(
+            (l) =>
+              l.createdBy === username || l.collaborators?.includes(username)
+          )
+        )
+      )
+      .catch((err) => console.error("Lists couldn't be loaded:", err));
+  }, [username]);
 
   useEffect(() => {
-    if (pin) {
-      setEditForm({
-        title: pin.title,
-        category: pin.category,
-        description: pin.description,
-        tags: pin.tags || [],
-      });
-    }
-  }, [pin]);
-
-  useEffect(() => {
-    fetch(import.meta.env.VITE_API_URL + `/api/pins/${id}`)
-      .then((res) => res.json())
-      .then((data) => setPin(data));
+    setPin(null);
+    setLoadError(null);
+    setCurrentImageIndex(0);
+    api(`/api/pins/${id}`)
+      .then(setPin)
+      .catch((err) => setLoadError(err));
   }, [id]);
 
   useEffect(() => {
-    fetch(import.meta.env.VITE_API_URL + `/api/comments/${id}`)
-      .then((res) => res.json())
-      .then((data) => setComments(data));
+    api(`/api/comments/${id}`)
+      .then(setComments)
+      .catch((err) => console.error("Comments couldn't be loaded:", err));
   }, [id]);
 
-  async function handleLike() {
-    const username = localStorage.getItem("username");
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("You need to be logged in to vote");
-      navigate("/auth");
-      return;
-    }
-
-    const res = await fetch(
-      import.meta.env.VITE_API_URL + `/api/pins/${id}/like`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ username }),
-      }
-    );
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.message);
-      return;
-    }
-    if (data._id) setPin(data);
+  function requireLogin(message) {
+    if (username) return true;
+    alert(message);
+    navigate("/auth");
+    return false;
   }
 
-  async function handleDislike() {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("You need to be logged in to vote");
-      navigate("/auth");
-      return;
-    }
-    const username = localStorage.getItem("username");
-    const res = await fetch(
-      import.meta.env.VITE_API_URL + `/api/pins/${id}/dislike`,
-      {
+  async function handleVote(type) {
+    if (!requireLogin("You need to be logged in to vote")) return;
+    try {
+      const updated = await api(`/api/pins/${id}/${type}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ username }),
-      }
-    );
-    const data = await res.json();
-    if (!res.ok) {
-      alert(data.message);
-      return;
+        auth: true,
+      });
+      setPin(updated);
+    } catch (err) {
+      alert(err.message);
     }
-    if (data._id) setPin(data);
   }
 
   async function handleDelete(commentId) {
-    const username = localStorage.getItem("username");
     try {
-      const res = await fetch(
-        import.meta.env.VITE_API_URL + `/api/comments/${commentId}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
-        }
-      );
-      const result = await res.json();
-      if (res.ok) {
-        setComments((prev) =>
-          prev.filter((comment) => comment._id !== commentId)
-        );
-      } else {
-        alert(result.message);
-      }
+      await api(`/api/comments/${commentId}`, { method: "DELETE", auth: true });
+      setComments((prev) => prev.filter((c) => c._id !== commentId));
     } catch (err) {
       console.error("Error deleting comment:", err);
+      alert(err.message);
     }
   }
 
   async function handleDeletePin() {
-    const confirmDelete = confirm("Are you sure you want to delete this pin?");
-    if (!confirmDelete) return;
-    const username = localStorage.getItem("username");
+    if (!confirm("Are you sure you want to delete this pin?")) return;
     try {
-      const res = await fetch(
-        import.meta.env.VITE_API_URL + `/api/pins/${pin._id}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
-        }
-      );
-      const data = await res.json();
-      if (res.ok) {
-        alert("Pin deleted!");
-        window.location.href = "/";
-      } else {
-        alert(data.message);
-      }
+      await api(`/api/pins/${pin._id}`, { method: "DELETE", auth: true });
+      alert("Pin deleted!");
+      navigate("/");
     } catch (err) {
       console.error("❌ Silme hatası:", err);
-      alert("Error deleting pin.");
+      alert(err.message || "Error deleting pin.");
     }
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const username = localStorage.getItem("username") || "anonymous";
-    const res = await fetch(import.meta.env.VITE_API_URL + "/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        pinId: id,
-        username,
-        text: newComment,
-      }),
-    });
-    const added = await res.json();
-    setComments((prev) => [added, ...prev]);
-    setNewComment("");
+    if (!requireLogin("You need to be logged in to comment")) return;
+    try {
+      const added = await api("/api/comments", {
+        method: "POST",
+        auth: true,
+        body: { pinId: id, text: newComment },
+      });
+      setComments((prev) => [added, ...prev]);
+      setNewComment("");
+    } catch (err) {
+      alert(err.message);
+    }
   }
 
   async function handleAddToList() {
-    const username = localStorage.getItem("username");
-    if (!username) return alert("You need to be logged in");
+    if (!requireLogin("You need to be logged in")) return;
 
     try {
       let listIdToUse = selectedListId;
-      if (!listIdToUse && newListName) {
-        const res = await fetch(import.meta.env.VITE_API_URL + "/api/lists", {
+      if (!listIdToUse && newListName.trim()) {
+        const newList = await api("/api/lists", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: newListName,
-            description: "",
-            createdBy: username,
-            pins: [],
-          }),
+          auth: true,
+          body: { name: newListName.trim(), description: "" },
         });
-        const newList = await res.json();
         listIdToUse = newList._id;
       }
       if (!listIdToUse) return alert("Select or create a list");
 
-      navigate(`/lists/${listIdToUse}?pin=${id}`);
+      await api(`/api/lists/${listIdToUse}/add-pin`, {
+        method: "PUT",
+        auth: true,
+        body: { pinId: id },
+      });
+      navigate(`/lists/${listIdToUse}`);
     } catch (err) {
       console.error("Error while adding to list:", err);
+      alert(err.message);
     }
   }
 
-  if (!pin) return <p>Loading...</p>;
+  function openEditor() {
+    setEditForm({
+      title: pin.title,
+      category: pin.category,
+      description: pin.description || "",
+      tags: pin.tags || [],
+    });
+    setCoverImage(null);
+    setExtraImages([]);
+    setEditing(true);
+  }
+
+  async function handleSaveEdit(e) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const imageUrl = coverImage ? await uploadImage(coverImage) : pin.imageUrl;
+      const uploads = await Promise.all(extraImages.map(uploadImage));
+
+      const updated = await api(`/api/pins/${id}`, {
+        method: "PUT",
+        auth: true,
+        body: {
+          ...editForm,
+          imageUrl,
+          images: [...(pin.images || []), ...uploads],
+        },
+      });
+      setPin(updated);
+      setEditing(false);
+    } catch (err) {
+      console.error("Pin update failed:", err);
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleRemoveImage(url) {
+    if (!confirm("Remove this image?")) return;
+    try {
+      const updated = await api(`/api/pins/${id}`, {
+        method: "PUT",
+        auth: true,
+        body: { images: pin.images.filter((img) => img !== url) },
+      });
+      setPin(updated);
+      setCurrentImageIndex(0);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  if (loadError) {
+    return (
+      <NotFound
+        message={
+          loadError.status === 404 || loadError.status === 400
+            ? "Place not found"
+            : "Couldn't load this place"
+        }
+      />
+    );
+  }
+  if (!pin) return <p className="page-status">Loading...</p>;
+
+  const isOwner = username === pin.createdBy;
+  const images = Array.isArray(pin.images) ? pin.images : [];
+  const safeImageIndex = Math.min(currentImageIndex, images.length - 1);
 
   return (
     <div className="pin-detail-container">
       <div className="title-edit">
         <h1 className="pin-title">{pin.title}</h1>
-        {localStorage.getItem("username") === pin.createdBy && (
-          <button className="edit-button" onClick={() => setEditing(true)}>
+        {isOwner && (
+          <button className="edit-button" onClick={openEditor}>
             Edit
           </button>
         )}
@@ -232,7 +243,7 @@ export default function PinDetail() {
 
       <div className="pin-meta">
         <div className="tag-list">
-          {pin.tags.map((tag) => (
+          {(pin.tags || []).map((tag) => (
             <span key={tag} className={`tag tag-${tag}`}>
               {tag}
             </span>
@@ -240,11 +251,18 @@ export default function PinDetail() {
         </div>
         <div className="up-town">
           <p>
-            <strong>Category:</strong> {pin.category}
+            <strong>Category:</strong> {categoryLabel(pin.category)}
           </p>
+          {pin.city && pin.city !== "Unknown" && (
+            <p>
+              <strong>City:</strong> {pin.city}
+            </p>
+          )}
           <p
             style={{ cursor: "pointer" }}
-            onClick={() => navigate(`/profile/${pin.createdBy}`)}
+            onClick={() =>
+              navigate(`/profile/${encodeURIComponent(pin.createdBy)}`)
+            }
           >
             <strong>By:</strong> {pin.createdBy}
           </p>
@@ -255,43 +273,59 @@ export default function PinDetail() {
       </div>
 
       <div className="pin-reactions">
-        <button onClick={handleLike}>
+        <button
+          onClick={() => handleVote("like")}
+          aria-label="Like"
+          aria-pressed={pin.likedBy?.includes(username)}
+          className={pin.likedBy?.includes(username) ? "voted" : ""}
+        >
           <IoIosThumbsUp style={{ width: "1.25rem", height: "auto" }} />
         </button>{" "}
         <span>{pin.likes}</span>
-        <button onClick={handleDislike}>
+        <button
+          onClick={() => handleVote("dislike")}
+          aria-label="Dislike"
+          aria-pressed={pin.dislikedBy?.includes(username)}
+          className={pin.dislikedBy?.includes(username) ? "voted" : ""}
+        >
           <IoIosThumbsDown style={{ width: "1.25rem", height: "auto" }} />
         </button>{" "}
         <span>{pin.dislikes}</span>
       </div>
 
-      {Array.isArray(pin.images) && pin.images.length > 0 && (
+      {images.length > 0 && (
         <div className="extra-images-slider">
-          <button
-            className="slider-arrow left"
-            onClick={() =>
-              setCurrentImageIndex((prev) =>
-                prev === 0 ? pin.images.length - 1 : prev - 1
-              )
-            }
-          >
-            <FaArrowAltCircleLeft />
-          </button>
+          {images.length > 1 && (
+            <button
+              className="slider-arrow left"
+              aria-label="Previous image"
+              onClick={() =>
+                setCurrentImageIndex((prev) =>
+                  prev <= 0 ? images.length - 1 : prev - 1
+                )
+              }
+            >
+              <FaArrowAltCircleLeft />
+            </button>
+          )}
           <img
-            src={pin.images[currentImageIndex]}
-            alt={`Extra ${currentImageIndex + 1}`}
+            src={images[safeImageIndex]}
+            alt={`${pin.title} ${safeImageIndex + 1}`}
             className="slider-image"
           />
-          <button
-            className="slider-arrow right"
-            onClick={() =>
-              setCurrentImageIndex((prev) =>
-                prev === pin.images.length - 1 ? 0 : prev + 1
-              )
-            }
-          >
-            <FaArrowAltCircleRight />
-          </button>
+          {images.length > 1 && (
+            <button
+              className="slider-arrow right"
+              aria-label="Next image"
+              onClick={() =>
+                setCurrentImageIndex((prev) =>
+                  prev >= images.length - 1 ? 0 : prev + 1
+                )
+              }
+            >
+              <FaArrowAltCircleRight />
+            </button>
+          )}
         </div>
       )}
 
@@ -307,7 +341,11 @@ export default function PinDetail() {
           onClick={() => setShowListFields((prev) => !prev)}
         >
           <h3>Add to List</h3>
-          <button className="plus-button">
+          <button
+            className="plus-button"
+            aria-label="Add to list"
+            aria-expanded={showListFields}
+          >
             <Plus size={32} />
           </button>
         </div>
@@ -330,7 +368,9 @@ export default function PinDetail() {
             <input
               type="text"
               placeholder="New list name"
+              maxLength={100}
               value={newListName}
+              disabled={Boolean(selectedListId)}
               onChange={(e) => setNewListName(e.target.value)}
             />
             <button onClick={handleAddToList}>Add</button>
@@ -340,80 +380,13 @@ export default function PinDetail() {
       {editing && (
         <div className="modal-overlay" onClick={() => setEditing(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <form
-              className="edit-form-vertical"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const username = localStorage.getItem("username");
-
-                let imageUrl = pin.imageUrl;
-                let extraImageUrls = [...(pin.images || [])];
-
-                const fileInput = e.target.elements.image;
-                if (fileInput && fileInput.files.length > 0) {
-                  const file = fileInput.files[0];
-                  const formData = new FormData();
-                  formData.append("file", file);
-                  formData.append("upload_preset", uploadPreset);
-
-                  const res = await fetch(
-                    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-                    {
-                      method: "POST",
-                      body: formData,
-                    }
-                  );
-
-                  const data = await res.json();
-                  imageUrl = data.secure_url;
-                }
-
-                if (extraImages.length > 0) {
-                  const uploads = await Promise.all(
-                    extraImages.map(async (img) => {
-                      const formData = new FormData();
-                      formData.append("file", img);
-                      formData.append("upload_preset", uploadPreset);
-                      const res = await fetch(
-                        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-                        {
-                          method: "POST",
-                          body: formData,
-                        }
-                      );
-                      const data = await res.json();
-                      return data.secure_url;
-                    })
-                  );
-                  extraImageUrls = [...extraImageUrls, ...uploads];
-                }
-
-                const res = await fetch(
-                  import.meta.env.VITE_API_URL + `/api/pins/${id}`,
-                  {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      username,
-                      title: editForm.title,
-                      category: editForm.category,
-                      description: editForm.description,
-                      tags: editForm.tags,
-                      imageUrl,
-                      images: extraImageUrls,
-                    }),
-                  }
-                );
-
-                const updated = await res.json();
-                setPin(updated);
-                setEditing(false);
-              }}
-            >
+            <form className="edit-form-vertical" onSubmit={handleSaveEdit}>
               <label>
                 Title
                 <input
                   type="text"
+                  required
+                  maxLength={120}
                   value={editForm.title}
                   onChange={(e) =>
                     setEditForm({ ...editForm, title: e.target.value })
@@ -423,13 +396,19 @@ export default function PinDetail() {
 
               <label>
                 Category
-                <input
-                  type="text"
+                <select
+                  required
                   value={editForm.category}
                   onChange={(e) =>
                     setEditForm({ ...editForm, category: e.target.value })
                   }
-                />
+                >
+                  {categories.map((c) => (
+                    <option key={c.key} value={c.key}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <label>
                 Tags
@@ -446,15 +425,11 @@ export default function PinDetail() {
                     })
                   }
                 >
-                  <option value="free">Free</option>
-                  <option value="$">$</option>
-                  <option value="$$">$$</option>
-                  <option value="$$$">$$$</option>
-                  <option value="touristic">Touristic</option>
-                  <option value="local">Local</option>
-                  <option value="new">New</option>
-                  <option value="crowded">Crowded</option>
-                  <option value="quiet">Quiet</option>
+                  {allTags.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.label}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -462,6 +437,7 @@ export default function PinDetail() {
                 Description
                 <textarea
                   rows="4"
+                  maxLength={2000}
                   value={editForm.description}
                   onChange={(e) =>
                     setEditForm({ ...editForm, description: e.target.value })
@@ -471,19 +447,39 @@ export default function PinDetail() {
 
               <label>
                 Cover Image
-                <input type="file" name="image" accept="image/*" />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setCoverImage(e.target.files[0] || null)}
+                />
               </label>
 
               <label>
                 Extra Images
                 <input
                   type="file"
-                  name="images"
                   accept="image/*"
                   multiple
                   onChange={(e) => setExtraImages([...e.target.files])}
                 />
               </label>
+
+              {images.length > 0 && (
+                <div className="edit-image-list">
+                  {images.map((url) => (
+                    <button
+                      type="button"
+                      key={url}
+                      className="edit-image-thumb"
+                      title="Remove image"
+                      onClick={() => handleRemoveImage(url)}
+                    >
+                      <img src={url} alt="" />
+                      <span aria-hidden="true">×</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <button
                 type="button"
@@ -494,7 +490,9 @@ export default function PinDetail() {
               </button>
 
               <div className="edit-button-group">
-                <button type="submit">Save</button>
+                <button type="submit" disabled={saving}>
+                  {saving ? "Saving..." : "Save"}
+                </button>
                 <button
                   type="button"
                   onClick={() => setEditing(false)}
@@ -510,46 +508,52 @@ export default function PinDetail() {
 
       <div className="list-comments-section">
         <h2>Comments</h2>
-        <form className="list-comment-form" onSubmit={handleSubmit}>
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Share your thoughts..."
-            required
-          ></textarea>
-          <button type="submit">Add Comment</button>
-        </form>
+        {username ? (
+          <form className="list-comment-form" onSubmit={handleSubmit}>
+            <textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Share your thoughts..."
+              maxLength={1000}
+              required
+            ></textarea>
+            <button type="submit">Add Comment</button>
+          </form>
+        ) : (
+          <p>
+            <Link to="/auth">Log in</Link>{" "}
+            to leave a comment.
+          </p>
+        )}
 
         <ul className="list-comment-list">
-          {comments.map((comment) => {
-            const date = new Date(comment.createdAt);
-            const formattedDate = date.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            });
-            const isOwner =
-              localStorage.getItem("username") === comment.username;
-            return (
-              <li key={comment._id} className="list-comment-item">
-                <div className="comment-header">
-                  <strong>{comment.username}</strong>
-                  <div className="comment-rigth-side">
-                    <span>{formattedDate}</span>
-                    {isOwner && (
-                      <button
-                        onClick={() => handleDelete(comment._id)}
-                        className="comment-delete-button"
-                      >
-                        X
-                      </button>
-                    )}
-                  </div>
+          {comments.map((comment) => (
+            <li key={comment._id} className="list-comment-item">
+              <div className="comment-header">
+                <strong
+                  style={{ cursor: "pointer" }}
+                  onClick={() =>
+                    navigate(`/profile/${encodeURIComponent(comment.username)}`)
+                  }
+                >
+                  {comment.username}
+                </strong>
+                <div className="comment-rigth-side">
+                  <span>{formatDate(comment.createdAt)}</span>
+                  {username === comment.username && (
+                    <button
+                      onClick={() => handleDelete(comment._id)}
+                      className="comment-delete-button"
+                      aria-label="Delete comment"
+                    >
+                      X
+                    </button>
+                  )}
                 </div>
-                <p>{comment.text}</p>
-              </li>
-            );
-          })}
+              </div>
+              <p>{comment.text}</p>
+            </li>
+          ))}
         </ul>
       </div>
     </div>

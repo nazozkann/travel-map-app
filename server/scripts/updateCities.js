@@ -1,58 +1,56 @@
+// One-off maintenance script: fills in `city` for pins that don't have one.
+// Usage: node scripts/updateCities.js  (reads server/.env)
+const path = require("path");
 const mongoose = require("mongoose");
 const fetch = require("node-fetch");
-const Pin = require("./../models/Pin");
+const Pin = require("../models/Pin");
+const { TAGS } = require("../utils/constants");
 
-require("dotenv").config({ path: "../.env" });
+require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
-console.log("🔑 API Key:", process.env.GEOAPIFY_API_KEY);
+if (!process.env.MONGO_URL || !process.env.GEOAPIFY_API_KEY) {
+  console.error("MONGO_URL and GEOAPIFY_API_KEY must be set in server/.env");
+  process.exit(1);
+}
 
 const getCityFromCoords = async (lat, lon) => {
   const res = await fetch(
     `https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&apiKey=${process.env.GEOAPIFY_API_KEY}`
   );
+  if (!res.ok) throw new Error(`Geoapify responded with ${res.status}`);
   const data = await res.json();
+  const props = data.features?.[0]?.properties;
 
-  console.log(`📍 (${lat}, ${lon}) ➜`, data.features?.[0]?.properties); // 🔍 Logla
-
-  return (
-    data.features?.[0]?.properties?.city ||
-    data.features?.[0]?.properties?.county ||
-    data.features?.[0]?.properties?.state ||
-    "Unknown"
-  );
+  return props?.city || props?.county || props?.state || "Unknown";
 };
 
 (async () => {
-  await mongoose.connect(process.env.MONGO_URL);
-  const pins = await Pin.find({
-    $or: [{ city: { $exists: false } }, { city: "Unknown" }],
-  });
+  try {
+    await mongoose.connect(process.env.MONGO_URL);
+    const pins = await Pin.find({
+      $or: [{ city: { $exists: false } }, { city: "Unknown" }],
+    });
 
-  for (const pin of pins) {
-    const lat = Number(pin.latitude);
-    const lon = Number(pin.longitude);
+    for (const pin of pins) {
+      try {
+        const city = await getCityFromCoords(
+          Number(pin.latitude),
+          Number(pin.longitude)
+        );
+        pin.tags = (pin.tags || []).filter((tag) => TAGS.includes(tag));
+        pin.city = city;
+        await pin.save();
+        console.log(`✅ Updated ${pin.title} → ${city}`);
+      } catch (err) {
+        console.error(`⚠️  Skipped ${pin.title}:`, err.message);
+      }
+    }
 
-    const city = await getCityFromCoords(lat, lon);
-
-    const allowedTags = [
-      "free",
-      "$",
-      "$$",
-      "$$$",
-      "touristic",
-      "local",
-      "new",
-      "crowded",
-      "quiet",
-    ];
-    pin.tags = (pin.tags || []).filter((tag) => allowedTags.includes(tag));
-
-    pin.city = city;
-    await pin.save();
-
-    console.log(`✅ Updated ${pin.title} → ${city}`);
+    console.log("🎉 City update complete.");
+  } catch (err) {
+    console.error(err);
+    process.exitCode = 1;
+  } finally {
+    await mongoose.disconnect();
   }
-
-  console.log("🎉 City update complete.");
-  process.exit();
 })();

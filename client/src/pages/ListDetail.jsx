@@ -1,222 +1,144 @@
-import { useEffect, useState, useRef } from "react";
-import {
-  useParams,
-  useSearchParams,
-  useNavigate,
-  useLocation,
-} from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
 import ListMap from "../components/ListMap";
-import { categories } from "../utils/categories";
+import NotFound from "./NotFound";
 import { X } from "lucide-react";
 import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
+import { api } from "../utils/api";
+import useAuth from "../hooks/useAuth";
+import uploadImage from "../utils/uploadImage";
+import formatDate from "../utils/formatDate";
+import { categoryLabel } from "../utils/categories";
+
+async function copyToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+  return window.prompt("Copy this link:", text) !== null;
+}
 
 export default function ListDetail() {
   const navigate = useNavigate();
   const { listId } = useParams();
   const location = useLocation();
+  const username = useAuth();
   const [list, setList] = useState(null);
-  const [searchParams] = useSearchParams();
-  const addedRef = useRef(false);
-  const [selectedCategories, setSelectedCategories] = useState(
-    categories.map((cat) => cat.key)
-  );
+  const [loadError, setLoadError] = useState(null);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: "",
-    description: "",
-    coverImage: "",
-  });
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", description: "" });
   const [listComments, setListComments] = useState([]);
   const [newListComment, setNewListComment] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [coverImageFile, setCoverImageFile] = useState(null);
-  const [activeButton, setActiveButton] = useState(null);
-  const [hasSentRequest, setHasSentRequest] = useState(false);
-  const [isCollaborator, setIsCollaborator] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
 
   const isShared = location.pathname.startsWith("/share");
 
   useEffect(() => {
-    if (!list) return;
-
-    const username = localStorage.getItem("username");
-    if (!username) return;
-
-    if (list.collaborators.includes(username)) {
-      setIsCollaborator(true);
-      setHasSentRequest(false);
-      return;
-    }
-    const reqEntry = list.collabRequests?.find((r) => r.username === username);
-
-    if (!reqEntry) {
-      setHasSentRequest(false);
-      setIsCollaborator(false);
-      return;
-    }
-
-    switch (reqEntry.status) {
-      case "pending":
-        setHasSentRequest(true);
-        setIsCollaborator(false);
-        break;
-      case "accepted":
-        setHasSentRequest(false);
-        setIsCollaborator(true);
-        break;
-      case "rejected":
-        setHasSentRequest(false);
-        setIsCollaborator(false);
-        break;
-      default:
-        break;
-    }
-  }, [list]);
-
-  useEffect(() => {
+    setList(null);
+    setLoadError(null);
     const endpoint = isShared
-      ? import.meta.env.VITE_API_URL + `/api/lists/share/${listId}`
-      : import.meta.env.VITE_API_URL + `/api/lists/id/${listId}`;
-
-    fetch(endpoint)
-      .then((r) => r.json())
-      .then(setList)
-      .catch(console.error);
+      ? `/api/lists/share/${listId}`
+      : `/api/lists/id/${listId}`;
+    api(endpoint).then(setList).catch(setLoadError);
   }, [listId, isShared]);
 
   useEffect(() => {
-    if (isShared) return;
-
-    const pinId = searchParams.get("pin");
-    if (!pinId || addedRef.current) return;
-
-    fetch(import.meta.env.VITE_API_URL + `/api/lists/${listId}/add-pin`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        pinId,
-        username: localStorage.getItem("username"),
-      }),
-    })
-      .then((r) => r.json())
-      .then((updated) => {
-        setList(updated);
-        addedRef.current = true;
-        navigate(`/lists/${listId}`, { replace: true });
-      })
-      .catch(console.error);
-  }, [listId, searchParams, navigate, isShared]);
-
-  useEffect(() => {
-    fetch(import.meta.env.VITE_API_URL + `/api/lists/${listId}/comments`)
-      .then((res) => res.json())
-      .then((data) => setListComments(data))
+    api(`/api/lists/${listId}/comments`)
+      .then(setListComments)
       .catch((err) => console.error("List comments fetch error:", err));
   }, [listId]);
 
-  const validPins = Array.isArray(list?.pins) ? list.pins.filter(Boolean) : [];
-  const filteredPins = validPins.filter((pin) =>
-    selectedCategories.includes(pin.category)
+  const validPins = useMemo(
+    () => (Array.isArray(list?.pins) ? list.pins.filter(Boolean) : []),
+    [list?.pins]
   );
 
-  async function handleRemovePin(pinId) {
-    const username = localStorage.getItem("username");
-    const res = await fetch(
-      import.meta.env.VITE_API_URL + `/api/lists/${listId}/remove-pin`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pinId, username }),
-      }
+  const isOwner = Boolean(username) && username === list?.createdBy;
+  const isCollaborator =
+    Boolean(username) && Boolean(list?.collaborators?.includes(username));
+  const canEdit = isOwner || isCollaborator;
+  const hasPendingRequest =
+    requestSent ||
+    Boolean(
+      list?.collabRequests?.some(
+        (r) => r.username === username && r.status === "pending"
+      )
     );
-    const updated = await res.json();
-    setList(updated);
+
+  function requireLogin(message) {
+    if (username) return true;
+    alert(message);
+    navigate("/auth");
+    return false;
   }
 
-  function handleShareList() {
+  async function handleRemovePin(pinId) {
+    try {
+      const updated = await api(`/api/lists/${listId}/remove-pin`, {
+        method: "PUT",
+        auth: true,
+        body: { pinId },
+      });
+      setList(updated);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function handleShareList() {
     const shareUrl = `${window.location.origin}/share/${listId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      alert("✅ Share link copied to clipboard!");
-    });
+    try {
+      if (await copyToClipboard(shareUrl)) {
+        alert("✅ Share link copied to clipboard!");
+      }
+    } catch {
+      window.prompt("Copy this link:", shareUrl);
+    }
   }
 
   async function handleAddComment(e) {
     e.preventDefault();
-    const username = localStorage.getItem("username" || "anonymous");
+    if (!requireLogin("You need to be logged in to comment.")) return;
 
     try {
-      const res = await fetch(
-        import.meta.env.VITE_API_URL + `/api/lists/${listId}/comments`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: newListComment, username }),
-        }
-      );
-
-      const addedComment = await res.json();
-      if (!addedComment._id) {
-        console.error("Comment id is missing!");
-        return;
-      }
-
+      const addedComment = await api(`/api/lists/${listId}/comments`, {
+        method: "POST",
+        auth: true,
+        body: { text: newListComment },
+      });
       setListComments((prev) => [addedComment, ...prev]);
       setNewListComment("");
     } catch (error) {
       console.error("Error adding comment:", error);
+      alert(error.message);
     }
   }
 
   async function handleDeleteComment(commentId) {
-    const username = localStorage.getItem("username");
-
     try {
-      const res = await fetch(
-        import.meta.env.VITE_API_URL +
-          `/api/lists/${listId}/comments/${commentId}`,
-        {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
-        }
-      );
-
-      const result = await res.json();
-
-      if (res.ok) {
-        setListComments((prev) =>
-          prev.filter((comment) => comment._id !== commentId)
-        );
-        setConfirmDeleteId(null);
-      } else {
-        alert(result.message);
-      }
+      await api(`/api/lists/${listId}/comments/${commentId}`, {
+        method: "DELETE",
+        auth: true,
+      });
+      setListComments((prev) => prev.filter((c) => c._id !== commentId));
     } catch (err) {
       console.error("Error deleting comment:", err);
+      alert(err.message);
+    } finally {
+      setConfirmDeleteId(null);
     }
   }
 
   async function handleLikeList() {
-    const username = localStorage.getItem("username");
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("You need to be logged in to like a list.");
-      navigate("/auth");
-      return;
-    }
+    if (!requireLogin("You need to be logged in to like a list.")) return;
     try {
-      const res = await fetch(
-        import.meta.env.VITE_API_URL + `/api/lists/${listId}/like`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ username }),
-        }
-      );
-      const updated = await res.json();
+      const updated = await api(`/api/lists/${listId}/like`, {
+        method: "PUT",
+        auth: true,
+      });
       setList((prev) => ({
         ...prev,
         likes: updated.likes,
@@ -224,82 +146,67 @@ export default function ListDetail() {
       }));
     } catch (err) {
       console.error("Error liking list:", err);
+      alert(err.message);
     }
-  }
-
-  function handleCoverImageChange(e) {
-    setCoverImageFile(e.target.files[0]);
   }
 
   async function handleSendCollabRequest() {
-    const username = localStorage.getItem("username");
-    const endpoint =
-      import.meta.env.VITE_API_URL + `/api/lists/${listId}/request-collab`;
-    console.log("👇 Sending collab request to:", endpoint);
-
+    if (!requireLogin("You need to be logged in to collaborate.")) return;
     try {
-      const res = await fetch(endpoint, {
+      await api(`/api/lists/${listId}/request-collab`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username }),
+        auth: true,
       });
-      console.log(" Response status:", res.status);
-      const data = await res.json();
-      console.log(" Response body:", data);
-      if (res.ok) {
-        alert("Request sent!");
-        setHasSentRequest(true);
-      } else {
-        alert(data.message);
-      }
+      alert("Request sent!");
+      setRequestSent(true);
     } catch (err) {
       console.error("Error sending request:", err);
-      alert("Something went wrong");
+      alert(err.message);
     }
+  }
+
+  function openEditor() {
+    setEditForm({ name: list.name, description: list.description || "" });
+    setCoverImageFile(null);
+    setEditing(true);
   }
 
   async function handleSaveEdit(e) {
     e.preventDefault();
-    const username = localStorage.getItem("username");
-
-    let updatedForm = { ...editForm };
-
-    if (coverImageFile) {
-      const formData = new FormData();
-      formData.append("file", coverImageFile);
-      formData.append(
-        "upload_preset",
-        import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-      );
-
-      const uploadRes = await fetch(
-        `https://api.cloudinary.com/v1_1/${
-          import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-        }/image/upload`,
-        { method: "POST", body: formData }
-      );
-      const uploadData = await uploadRes.json();
-      updatedForm.coverImage = uploadData.secure_url;
-    }
-
-    const res = await fetch(
-      import.meta.env.VITE_API_URL + `/api/lists/${listId}`,
-      {
+    setSaving(true);
+    try {
+      const coverImage = coverImageFile
+        ? await uploadImage(coverImageFile)
+        : undefined;
+      const updated = await api(`/api/lists/${listId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...updatedForm,
-          username,
-        }),
-      }
-    );
-
-    const updated = await res.json();
-    setList(updated);
-    setEditing(false);
+        auth: true,
+        body: { ...editForm, coverImage },
+      });
+      setList(updated);
+      setEditing(false);
+    } catch (err) {
+      console.error("List update failed:", err);
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
-  if (!list) return <p>Loading list...</p>;
+  if (loadError) {
+    return (
+      <NotFound
+        message={
+          loadError.status === 404 || loadError.status === 400
+            ? "List not found"
+            : "Couldn't load this list"
+        }
+      />
+    );
+  }
+  if (!list) return <p className="page-status">Loading list...</p>;
+
+  const likedByMe = Boolean(username) && list.likedBy?.includes(username);
 
   return (
     <div className="pin-detail-container">
@@ -316,58 +223,42 @@ export default function ListDetail() {
       <p>{list.description}</p>
 
       <div className="list-detail-bottom">
-        <p
-          style={{ cursor: "pointer", marginBottom: "1rem" }}
-          onClick={() => navigate(`/profile/${list.createdBy}`)}
-        >
-          Created by <strong>{list.createdBy}</strong>
+        <p style={{ marginBottom: "1rem" }}>
+          Created by{" "}
+          <Link to={`/profile/${encodeURIComponent(list.createdBy)}`}>
+            <strong>{list.createdBy}</strong>
+          </Link>
         </p>
-        <button onClick={handleLikeList}>
-          {list.likedBy.includes(localStorage.getItem("username"))
-            ? "Unlike"
-            : "Like"}{" "}
-          ({list.likes})
+        <button onClick={handleLikeList} aria-pressed={likedByMe}>
+          {likedByMe ? "Unlike" : "Like"} ({list.likes})
         </button>
       </div>
 
-      <div className="list-buttons-up">
-        {!isShared &&
-          (localStorage.getItem("username") === list.createdBy ||
-            isCollaborator) && (
+      {!isShared && (
+        <div className="list-buttons-up">
+          {canEdit && (
             <button
-              className={`edit-button ${
-                activeButton === "edit" ? "active" : ""
-              }`}
-              onClick={() => {
-                setEditing(true);
-                setActiveButton("edit");
-              }}
+              className={`edit-button ${editing ? "active" : ""}`}
+              onClick={openEditor}
             >
               Edit
             </button>
           )}
-        {!isShared &&
-          localStorage.getItem("username") !== list.createdBy &&
-          !isCollaborator &&
-          !hasSentRequest && (
+          {username && !canEdit && !hasPendingRequest && (
             <button className="edit-button" onClick={handleSendCollabRequest}>
               Send Collaboration Request
             </button>
           )}
-        {!isShared && (
-          <button
-            className={`edit-button ${
-              activeButton === "share" ? "active" : ""
-            }`}
-            onClick={() => {
-              handleShareList();
-              setActiveButton("share");
-            }}
-          >
+          {username && !canEdit && hasPendingRequest && (
+            <button className="edit-button" disabled>
+              Request pending
+            </button>
+          )}
+          <button className="edit-button" onClick={handleShareList}>
             Share List
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {editing && (
         <form className="edit-form-vertical" onSubmit={handleSaveEdit}>
@@ -375,6 +266,8 @@ export default function ListDetail() {
             List name
             <input
               type="text"
+              required
+              maxLength={100}
               value={editForm.name}
               onChange={(e) =>
                 setEditForm({ ...editForm, name: e.target.value })
@@ -384,6 +277,7 @@ export default function ListDetail() {
           <label>
             Description
             <textarea
+              maxLength={1000}
               value={editForm.description}
               onChange={(e) =>
                 setEditForm({ ...editForm, description: e.target.value })
@@ -395,11 +289,11 @@ export default function ListDetail() {
             <input
               type="file"
               accept="image/*"
-              onChange={handleCoverImageChange}
+              onChange={(e) => setCoverImageFile(e.target.files[0] || null)}
             />
           </label>
           <ul className="profile-list">
-            {filteredPins.map((pin) => (
+            {validPins.map((pin) => (
               <li
                 key={pin._id}
                 className="profile-list-item"
@@ -419,6 +313,7 @@ export default function ListDetail() {
                 <button
                   type="button"
                   className="delete-button"
+                  aria-label={`Remove ${pin.title} from list`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleRemovePin(pin._id);
@@ -431,7 +326,9 @@ export default function ListDetail() {
           </ul>
 
           <div className="edit-button-group">
-            <button type="submit">Save</button>
+            <button type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </button>
             <button
               type="button"
               className="cancel-button"
@@ -443,10 +340,14 @@ export default function ListDetail() {
         </form>
       )}
 
-      {!editing && <ListMap pins={filteredPins} />}
+      {!editing && <ListMap pins={validPins} />}
+
+      {validPins.length === 0 && (
+        <p className="page-status">This list has no places yet.</p>
+      )}
 
       <div className="pin-card-grid">
-        {filteredPins.map((pin) => (
+        {validPins.map((pin) => (
           <div
             key={pin._id}
             className="pin-card"
@@ -462,7 +363,7 @@ export default function ListDetail() {
             <div className="pin-card-content">
               <h3>{pin.title}</h3>
               <div className="pin-card-meta">
-                <span>{pin.category}</span>
+                <span>{categoryLabel(pin.category)}</span>
                 <span>
                   <IoIosThumbsUp style={{ width: "1.25rem", height: "auto" }} />{" "}
                   {pin.likes}{" "}
@@ -480,52 +381,51 @@ export default function ListDetail() {
 
       <div className="list-comments-section">
         <h2>Comments</h2>
-        <form onSubmit={handleAddComment} className="list-comment-form">
-          <textarea
-            value={newListComment}
-            onChange={(e) => setNewListComment(e.target.value)}
-            placeholder="Write a comment about this list..."
-            required
-          ></textarea>
-          <button type="submit">Add Comment</button>
-        </form>
+        {username ? (
+          <form onSubmit={handleAddComment} className="list-comment-form">
+            <textarea
+              value={newListComment}
+              onChange={(e) => setNewListComment(e.target.value)}
+              placeholder="Write a comment about this list..."
+              maxLength={1000}
+              required
+            ></textarea>
+            <button type="submit">Add Comment</button>
+          </form>
+        ) : (
+          <p>
+            <Link to="/auth">Log in</Link> to leave a comment.
+          </p>
+        )}
 
         <ul className="list-comment-list">
-          {listComments.map((comment, index) => {
-            const isOwner =
-              localStorage.getItem("username") === comment.username;
-            const date = new Date(comment.createdAt);
-            const formattedDate = date.toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            });
-
-            return (
-              <li key={comment._id ?? index} className="list-comment-item">
-                <div className="comment-header">
-                  <strong
-                    onClick={() => navigate(`/profile/${comment.username}`)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    {comment.username}
-                  </strong>{" "}
-                  <div className="comment-rigth-side">
-                    <span>{formattedDate}</span>
-                    {isOwner && (
-                      <button
-                        className="comment-delete-button"
-                        onClick={() => setConfirmDeleteId(comment._id)}
-                      >
-                        X
-                      </button>
-                    )}
-                  </div>
+          {listComments.map((comment, index) => (
+            <li key={comment._id ?? index} className="list-comment-item">
+              <div className="comment-header">
+                <strong
+                  onClick={() =>
+                    navigate(`/profile/${encodeURIComponent(comment.username)}`)
+                  }
+                  style={{ cursor: "pointer" }}
+                >
+                  {comment.username}
+                </strong>{" "}
+                <div className="comment-rigth-side">
+                  <span>{formatDate(comment.createdAt)}</span>
+                  {username === comment.username && (
+                    <button
+                      className="comment-delete-button"
+                      aria-label="Delete comment"
+                      onClick={() => setConfirmDeleteId(comment._id)}
+                    >
+                      X
+                    </button>
+                  )}
                 </div>
-                <p>{comment.text}</p>
-              </li>
-            );
-          })}
+              </div>
+              <p>{comment.text}</p>
+            </li>
+          ))}
         </ul>
       </div>
 

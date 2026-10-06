@@ -9,15 +9,19 @@ const userSchema = new mongoose.Schema(
       trim: true,
       minlength: 3,
       maxlength: 20,
+      match: /^[a-zA-Z0-9_.-]+$/,
     },
     email: {
       type: String,
       required: true,
       unique: true,
+      trim: true,
+      lowercase: true,
     },
     password: {
       type: String,
       required: true,
+      select: false,
     },
   },
   {
