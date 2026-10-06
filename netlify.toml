@@ -1,0 +1,30 @@
+# Frontend (client/) and API (server/ as a Netlify Function) deploy together.
+[build]
+  base = "client"
+  # Netlify installs client deps automatically; the function needs server deps too.
+  command = "npm ci --prefix ../server --omit=dev && npm run build"
+  publish = "dist"
+  functions = "../netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # API is served from the same origin under /api.
+  VITE_API_URL = ""
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions.keepalive]
+  schedule = "@daily"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# SPA fallback: let React Router handle every other path.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

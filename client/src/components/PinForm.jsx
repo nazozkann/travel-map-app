@@ -120,7 +120,7 @@ export default function PinForm({ lat, lng, onSuccess }) {
       <textarea
         name="description"
         placeholder="description"
-        maxLength={2000}
+        maxLength={5000}
         required
         onChange={handleChange}
       ></textarea>

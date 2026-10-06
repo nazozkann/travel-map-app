@@ -64,7 +64,7 @@ router.put("/:id", verifyToken, async (req, res) => {
     if (imageUrl !== undefined) pin.imageUrl = sanitizeUrls([imageUrl])[0];
     if (images !== undefined) pin.images = sanitizeUrls(images);
 
-    const updated = await pin.save();
+    const updated = await pin.save({ validateModifiedOnly: true });
     res.json(updated);
   } catch (err) {
     if (err.name === "ValidationError") {
@@ -133,7 +133,7 @@ async function vote(req, res, type) {
       pin[byField].push(username);
     }
 
-    const updated = await pin.save();
+    const updated = await pin.save({ validateModifiedOnly: true });
     res.status(200).json(updated);
   } catch (err) {
     console.error(err);

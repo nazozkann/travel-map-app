@@ -437,7 +437,7 @@ export default function PinDetail() {
                 Description
                 <textarea
                   rows="4"
-                  maxLength={2000}
+                  maxLength={5000}
                   value={editForm.description}
                   onChange={(e) =>
                     setEditForm({ ...editForm, description: e.target.value })

@@ -1,7 +1,7 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 const router = express.Router();
 const User = require("../models/User");
 const verifyToken = require("../middleware/verifyToken");
@@ -12,6 +12,12 @@ const authLimiter = rateLimit({
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { message: "Too many attempts, please try again later" },
+  // On Netlify Functions req.ip can be empty; Netlify passes the client IP in a header.
+  keyGenerator: (req) =>
+    ipKeyGenerator(
+      req.headers["x-nf-client-connection-ip"] || req.ip || "0.0.0.0"
+    ),
+  validate: { ip: false },
 });
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

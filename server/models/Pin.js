@@ -6,7 +6,7 @@ const PinSchema = new mongoose.Schema(
     title: { type: String, required: true, trim: true, maxlength: 120 },
     category: { type: String, required: true, enum: CATEGORIES },
     tags: [{ type: String, enum: TAGS }],
-    description: { type: String, trim: true, maxlength: 2000 },
+    description: { type: String, trim: true, maxlength: 5000 },
     imageUrl: String,
     images: [{ type: String }],
     latitude: { type: Number, required: true, min: -90, max: 90 },

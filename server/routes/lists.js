@@ -118,7 +118,7 @@ router.post("/me/notifications/:listId/read", verifyToken, async (req, res) => {
     entries.forEach((r) => {
       r.notified = true;
     });
-    await list.save();
+    await list.save({ validateModifiedOnly: true });
     res.json({ message: "Marked read" });
   } catch (err) {
     console.error("Error marking read:", err);
@@ -179,7 +179,7 @@ router.put("/:listId/add-pin", verifyToken, async (req, res) => {
     if (!pin) return res.status(404).json({ message: "Pin not found" });
 
     list.pins.addToSet(pin._id);
-    const updated = await list.save();
+    const updated = await list.save({ validateModifiedOnly: true });
     const populated = await updated.populate("pins");
 
     res.json(populated);
@@ -203,7 +203,7 @@ router.put("/:listId/remove-pin", verifyToken, async (req, res) => {
     }
 
     list.pins = list.pins.filter((p) => p.toString() !== String(pinId));
-    const updated = await list.save();
+    const updated = await list.save({ validateModifiedOnly: true });
     const populated = await updated.populate("pins");
     res.status(200).json(populated);
   } catch (err) {
@@ -232,7 +232,7 @@ router.put("/:listId/request-collab", verifyToken, async (req, res) => {
     }
 
     list.collabRequests.push({ username, status: "pending", notified: false });
-    await list.save();
+    await list.save({ validateModifiedOnly: true });
     res.status(200).json({ message: "Request sent" });
   } catch (err) {
     console.error(err);
@@ -274,7 +274,7 @@ router.put("/:listId/collab-response", verifyToken, async (req, res) => {
       list.collaborators.push(requester);
     }
 
-    await list.save();
+    await list.save({ validateModifiedOnly: true });
     return res.status(200).json({ message: `Request ${action}` });
   } catch (err) {
     console.error("Collab-response error:", err);
@@ -297,7 +297,7 @@ router.put("/:listId/like", verifyToken, async (req, res) => {
       list.likedBy.push(username);
     }
 
-    await list.save();
+    await list.save({ validateModifiedOnly: true });
     res.json({ likes: list.likes, likedBy: list.likedBy });
   } catch (err) {
     console.error(err);
@@ -322,7 +322,7 @@ router.put("/:listId", verifyToken, async (req, res) => {
     if (description !== undefined) list.description = description;
     if (isHttpUrl(coverImage)) list.coverImage = coverImage;
 
-    const updated = await list.save();
+    const updated = await list.save({ validateModifiedOnly: true });
     // Return pins populated so the client can render the list right away.
     res.status(200).json(await updated.populate("pins"));
   } catch (err) {
@@ -363,7 +363,7 @@ router.post("/:listId/comments", verifyToken, async (req, res) => {
     }
 
     list.comments.unshift({ username: req.user.username, text });
-    await list.save();
+    await list.save({ validateModifiedOnly: true });
     res.status(201).json(list.comments[0]);
   } catch (err) {
     if (err.name === "ValidationError") {
@@ -404,7 +404,7 @@ router.delete("/:listId/comments/:commentId", verifyToken, async (req, res) => {
     }
 
     comment.deleteOne();
-    await list.save();
+    await list.save({ validateModifiedOnly: true });
 
     res.json({ message: "Comment deleted" });
   } catch (err) {
