@@ -14,6 +14,15 @@ const expressHandler = serverless(app, {
   },
 });
 
+// Coarse, secret-free category for the 503 body so misconfiguration is visible without logs.
+function dbErrorReason(err) {
+  const msg = String(err?.message || err);
+  if (/bad auth|authentication failed/i.test(msg)) return "auth";
+  if (/ECONNREFUSED 127\.0\.0\.1|localhost/i.test(msg)) return "localhost-url";
+  if (/ENOTFOUND|querySrv|Invalid scheme|URI/i.test(msg)) return "bad-url";
+  return "network";
+}
+
 function missingEnv() {
   return ["MONGO_URL", "JWT_SECRET"].filter((key) => !process.env[key]);
 }
@@ -38,7 +47,10 @@ exports.api = async (event, context) => {
     return {
       statusCode: 503,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Database unavailable" }),
+      body: JSON.stringify({
+        message: "Database unavailable",
+        reason: dbErrorReason(err),
+      }),
     };
   }
 

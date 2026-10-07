@@ -6,7 +6,8 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "update-cities": "node scripts/updateCities.js",
-    "fix-categories": "node scripts/fixCategoryTypos.js"
+    "fix-categories": "node scripts/fixCategoryTypos.js",
+    "check-db": "node scripts/checkDb.js"
   },
   "keywords": [],
   "author": "",
