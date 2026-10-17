@@ -27,7 +27,7 @@ export function getMapStyle() {
 function syncThemeColor(isDark) {
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute("content", isDark ? "#0b0b0e" : "#ffffff");
+    ?.setAttribute("content", isDark ? "#081a2d" : "#f8eee3");
 }
 
 export function applySavedTheme() {

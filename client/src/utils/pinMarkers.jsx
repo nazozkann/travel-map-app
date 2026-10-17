@@ -7,9 +7,12 @@ import getMarkerElement from "./getMarkerElement";
 const isTouchDevice = () =>
   "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
+// How long the popup survives the pointer leaving the marker, so it can reach the popup.
+const HIDE_DELAY_MS = 200;
+
 // Manages pin markers on one map: a hover popup per pin, click opens the pin.
 // On touch devices the first tap shows the popup and the second tap opens the pin.
-export function createPinMarkers(map, { onOpen, canOpen = () => true }) {
+export function createPinMarkers(map, { onOpen, onDirections, canOpen = () => true }) {
   let entries = [];
   let activePopup = null;
   let activeTouchId = null;
@@ -33,25 +36,50 @@ export function createPinMarkers(map, { onOpen, canOpen = () => true }) {
 
     let popup = null;
     let root = null;
+    let hideTimer = null;
+
+    const cancelHide = () => clearTimeout(hideTimer);
+
+    const hidePopup = () => {
+      cancelHide();
+      if (activePopup === popup) closeActive();
+    };
+
+    const scheduleHide = () => {
+      cancelHide();
+      hideTimer = setTimeout(hidePopup, HIDE_DELAY_MS);
+    };
 
     const showPopup = () => {
+      cancelHide();
       if (!popup) {
         const container = document.createElement("div");
+        container.addEventListener("mouseenter", cancelHide);
+        container.addEventListener("mouseleave", scheduleHide);
         root = createRoot(container);
-        flushSync(() => root.render(<PopUp {...pin} />));
+        flushSync(() =>
+          root.render(
+            <PopUp
+              pin={pin}
+              onOpen={() => canOpen() && onOpen(pin)}
+              onDirections={() => {
+                hidePopup();
+                onDirections?.(pin);
+              }}
+            />
+          )
+        );
         popup = new maplibregl.Popup({
-          offset: 25,
+          offset: 20,
+          maxWidth: "none",
           closeButton: false,
           closeOnClick: false,
+          focusAfterOpen: false,
         }).setDOMContent(container);
       }
       if (activePopup !== popup) closeActive();
       popup.setLngLat([pin.longitude, pin.latitude]).addTo(map);
       activePopup = popup;
-    };
-
-    const hidePopup = () => {
-      if (activePopup === popup) closeActive();
     };
 
     const handleClick = (e) => {
@@ -66,7 +94,7 @@ export function createPinMarkers(map, { onOpen, canOpen = () => true }) {
     };
 
     el.addEventListener("mouseenter", showPopup);
-    el.addEventListener("mouseleave", hidePopup);
+    el.addEventListener("mouseleave", scheduleHide);
     el.addEventListener("click", handleClick);
 
     entries.push({

@@ -469,17 +469,17 @@ select.input {
 }
 
 .chip-cat svg {
-  color: var(--c);
+  color: color-mix(in srgb, var(--c) 70%, var(--text));
 }
 
 .chip-cat.active {
   border-color: var(--c);
   background: var(--c);
-  color: #fff;
+  color: var(--cat-ink);
 }
 
 .chip-cat.active svg {
-  color: #fff;
+  color: var(--cat-ink);
 }
 
 .chip-sm {
@@ -619,13 +619,13 @@ select.input {
   border: 1px solid var(--border);
   border-radius: var(--r);
   background: var(--surface);
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  transition: transform 0.2s var(--ease), border-color 0.2s var(--ease);
   animation: fade-up 0.4s var(--ease) both;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow);
+  border-color: var(--border-strong);
 }
 
 .card-link {
@@ -656,8 +656,8 @@ select.input {
   place-items: center;
   width: 100%;
   height: 100%;
-  color: var(--c);
-  background: color-mix(in srgb, var(--c) 10%, var(--surface));
+  color: color-mix(in srgb, var(--c) 75%, var(--text));
+  background: color-mix(in srgb, var(--c) 22%, var(--surface));
 }
 
 .card-body {
@@ -726,8 +726,8 @@ select.input {
 }
 
 .badge-cat {
-  color: var(--c);
-  background: color-mix(in srgb, var(--c) 13%, transparent);
+  color: color-mix(in srgb, var(--c) 55%, var(--text));
+  background: color-mix(in srgb, var(--c) 28%, transparent);
 }
 
 .votes {
@@ -833,7 +833,7 @@ select.input {
 }
 
 .chip-float {
-  border-color: transparent;
+  border-color: var(--border);
   background: var(--surface-glass);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -894,7 +894,7 @@ select.input {
   color: var(--on-accent);
   font-size: 15px;
   font-weight: 600;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent);
+  box-shadow: var(--shadow-lg);
   transform: translateX(-50%);
   transition: background-color 0.15s, transform 0.15s;
 }
@@ -969,10 +969,10 @@ select.input {
   display: block;
   width: 100%;
   height: 100%;
-  border: 3px solid #fff;
+  border: 3px solid var(--surface);
   border-radius: 50%;
   background: var(--marker-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
   transition: transform 0.15s var(--ease);
 }
 
@@ -1012,34 +1012,196 @@ select.input {
 }
 
 .pin-popup {
-  width: 240px;
+  width: 264px;
+  max-width: calc(100vw - 48px);
+}
+
+.pin-popup-main {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+}
+
+.pin-popup-main:hover .pin-popup-title {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Fixed 4:3 frame keeps the popup from jumping while the image loads;
+   the photo itself is never cropped. */
+.pin-popup-media {
+  position: relative;
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.pin-popup-media img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.pin-popup-backdrop {
+  object-fit: cover;
+  filter: blur(16px) saturate(1.1);
+  opacity: 0.55;
+  transform: scale(1.15);
 }
 
 .pin-popup-img {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .pin-popup-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px 14px 14px;
+  gap: 5px;
+  padding: 12px 14px 4px;
 }
 
-.pin-popup-body h3 {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.pin-popup-body p {
-  color: var(--text-muted);
-  font-size: 13px;
+.pin-popup-title {
   display: -webkit-box;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.3;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+}
+
+.pin-popup-city {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.pin-popup-text {
+  display: -webkit-box;
   overflow: hidden;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.pin-popup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px 10px 14px;
+  font-size: 13px;
+}
+
+/* ---------- Directions ---------- */
+.directions-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+}
+
+.directions-floating {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 3;
+  box-shadow: var(--shadow-lg);
+  animation: fade-up 0.25s var(--ease);
+}
+
+@media (min-width: 768px) {
+  .directions-floating {
+    left: 24px;
+    right: auto;
+    bottom: 24px;
+    width: 360px;
+  }
+}
+
+.directions-inline {
+  margin-top: 12px;
+}
+
+.directions-start {
+  margin-top: 12px;
+}
+
+.directions-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: -4px -6px 0 0;
+}
+
+.directions-heading {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.directions-label {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.directions-title {
+  overflow: hidden;
+  font-size: 16px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.directions-modes {
+  display: flex;
+}
+
+.directions-modes button {
+  flex: 1;
+  padding: 0 10px;
+}
+
+.directions-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 26px;
+  font-size: 14px;
+}
+
+.directions-summary strong {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.directions-error {
+  color: var(--danger);
+}
+
+.user-location {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 6px var(--accent-soft);
 }
 
 /* ---------- Modal / bottom sheet ---------- */

@@ -358,7 +358,12 @@ export default function PinDetail() {
 
       <section className="section">
         <h2 className="section-title">Location</h2>
-        <DetailMap lat={pin.latitude} lng={pin.longitude} category={pin.category} />
+        <DetailMap
+          lat={pin.latitude}
+          lng={pin.longitude}
+          category={pin.category}
+          title={pin.title}
+        />
       </section>
 
       <section className="section panel">

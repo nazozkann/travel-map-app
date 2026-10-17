@@ -4,16 +4,20 @@ import { Plus, X } from "lucide-react";
 import PinForm from "./PinForm";
 import CategoryFilter from "./CategoryFilter";
 import Modal from "./Modal";
+import DirectionsCard from "./DirectionsCard";
 import { categories } from "../utils/categories";
 import { tags } from "../utils/tags";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import useMapInstance from "../hooks/useMapInstance";
+import useDirections from "../hooks/useDirections";
 import { createPinMarkers } from "../utils/pinMarkers";
 import filterPins from "../utils/filterPins";
 import { api } from "../utils/api";
 import { getUsername } from "../utils/auth";
 
 const DEFAULT_VIEW = { center: [18, 45], zoom: 4 };
+// Keeps the route clear of the filter chips (top) and the directions card (bottom).
+const ROUTE_PADDING = { top: 90, bottom: 280, left: 40, right: 40 };
 
 function readSavedView() {
   try {
@@ -61,6 +65,8 @@ export default function MapView({ selectedLocation }) {
   const navigate = useNavigate();
 
   const map = useMapInstance(mapRef, readSavedView);
+  const directions = useDirections(map, { padding: ROUTE_PADDING });
+  const startDirections = directions.start;
 
   useEffect(() => {
     isAddingRef.current = isAdding;
@@ -91,13 +97,15 @@ export default function MapView({ selectedLocation }) {
     if (!map) return;
     markersRef.current = createPinMarkers(map, {
       onOpen: (pin) => navigate(`/places/${pin._id}`),
+      onDirections: (pin) =>
+        startDirections({ lat: pin.latitude, lng: pin.longitude, title: pin.title }),
       canOpen: () => !isAddingRef.current,
     });
     return () => {
       markersRef.current.destroy();
       markersRef.current = null;
     };
-  }, [map, navigate]);
+  }, [map, navigate, startDirections]);
 
   useEffect(() => {
     const markers = markersRef.current;
@@ -116,7 +124,7 @@ export default function MapView({ selectedLocation }) {
 
   useEffect(() => {
     if (!map || !draft) return;
-    const marker = new maplibregl.Marker({ color: "#2563eb" })
+    const marker = new maplibregl.Marker({ color: "#3a5d81" })
       .setLngLat([draft.lng, draft.lat])
       .addTo(map);
     return () => marker.remove();
@@ -200,14 +208,23 @@ export default function MapView({ selectedLocation }) {
         </div>
       )}
 
-      <button
-        type="button"
-        className={`fab ${isAdding ? "fab-cancel" : ""}`}
-        onClick={() => handleSetIsAdding((prev) => !prev)}
-      >
-        {isAdding ? <X size={20} /> : <Plus size={20} />}
-        {isAdding ? "Cancel" : "Add place"}
-      </button>
+      {directions.trip && !isAdding ? (
+        <DirectionsCard
+          className="directions-floating"
+          trip={directions.trip}
+          onModeChange={directions.setMode}
+          onClose={directions.clear}
+        />
+      ) : (
+        <button
+          type="button"
+          className={`fab ${isAdding ? "fab-cancel" : ""}`}
+          onClick={() => handleSetIsAdding((prev) => !prev)}
+        >
+          {isAdding ? <X size={20} /> : <Plus size={20} />}
+          {isAdding ? "Cancel" : "Add place"}
+        </button>
+      )}
 
       {draft && (
         <Modal title="Add a place" onClose={() => setDraft(null)}>
