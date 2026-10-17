@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { MapPin, Search, X } from "lucide-react";
 import "../styles/Navbar.css";
 
 export default function SearchBar({ onSelectLocation }) {
@@ -69,13 +70,17 @@ export default function SearchBar({ onSelectLocation }) {
   }
 
   return (
-    <div className="search-bar">
+    <div className="search">
+      <Search size={18} className="search-icon" aria-hidden="true" />
       <input
-        type="text"
-        placeholder="Search for a place"
+        type="search"
+        className="search-input"
+        placeholder="Search a city or place"
         aria-label="Search for a place"
+        enterKeyHint="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        onBlur={() => setResults([])}
         onKeyDown={(e) => {
           if (e.key === "ArrowDown") {
             e.preventDefault();
@@ -91,9 +96,21 @@ export default function SearchBar({ onSelectLocation }) {
             } else {
               handleSearch();
             }
+            e.currentTarget.blur();
           }
         }}
       />
+      {query && (
+        <button
+          type="button"
+          className="search-clear"
+          aria-label="Clear search"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setQuery("")}
+        >
+          <X size={16} />
+        </button>
+      )}
       {results.length > 0 && (
         <ul className="suggestions" role="listbox">
           {results.map((item, index) => (
@@ -105,14 +122,15 @@ export default function SearchBar({ onSelectLocation }) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => selectResult(item)}
             >
-              {item.properties.formatted}
+              <MapPin size={16} aria-hidden="true" />
+              <span>{item.properties.formatted}</span>
             </li>
           ))}
         </ul>
       )}
       {notFound && results.length === 0 && (
         <ul className="suggestions">
-          <li>No location found</li>
+          <li className="empty">No location found</li>
         </ul>
       )}
     </div>

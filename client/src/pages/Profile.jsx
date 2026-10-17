@@ -1,40 +1,10 @@
-import { useEffect, useState, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { CircleUserRound } from "lucide-react";
-import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
-import "../styles/Main.css";
-import useDragScroll from "../hooks/useDragScroll";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { Bell, Heart, List, LogOut, MapPin, UserPlus } from "lucide-react";
 import useAuth from "../hooks/useAuth";
 import { api } from "../utils/api";
 import { clearSession } from "../utils/auth";
-
-function PinCards({ pins, listRef, onOpen, emptyText }) {
-  if (pins.length === 0) return <p>{emptyText}</p>;
-  return (
-    <ul className="profile-card-list" ref={listRef}>
-      {pins.map((pin) => (
-        <li className="profile-card" onClick={() => onOpen(pin._id)} key={pin._id}>
-          {pin.imageUrl && (
-            <div className="profile-card-image">
-              <img src={pin.imageUrl} alt={pin.title} />
-            </div>
-          )}
-          <h3>{pin.title}</h3>
-          <div className="profile-card-likes">
-            <span>
-              <IoIosThumbsUp style={{ height: "1.25rem", width: "auto" }} />{" "}
-              {pin.likes}
-            </span>
-            <span>
-              <IoIosThumbsDown style={{ height: "1.25rem", width: "auto" }} />{" "}
-              {pin.dislikes}
-            </span>
-          </div>
-        </li>
-      ))}
-    </ul>
-  );
-}
+import { CardGrid, EmptyState, ListCard, PlaceCard } from "../components/Cards";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -48,14 +18,6 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState("added");
   const [collabRequests, setCollabRequests] = useState([]);
   const [notifications, setNotifications] = useState([]);
-
-  const addedRef = useRef();
-  const likedRef = useRef();
-  const listRef = useRef();
-
-  useDragScroll(addedRef, activeTab === "added" && pins.length > 0);
-  useDragScroll(likedRef, activeTab === "liked" && likedPins.length > 0);
-  useDragScroll(listRef, activeTab === "lists" && userLists.length > 0);
 
   useEffect(() => {
     const user = encodeURIComponent(username);
@@ -76,19 +38,15 @@ export default function Profile() {
     }
     api("/api/lists/me/collab-requests", { auth: true })
       .then(setCollabRequests)
-      .catch((err) => console.error("İstekler alınamadı:", err));
+      .catch((err) => console.error("Collab requests couldn't be loaded:", err));
     api("/api/lists/me/notifications", { auth: true })
       .then(setNotifications)
-      .catch((err) => console.error("Bildirimler alınamadı:", err));
+      .catch((err) => console.error("Notifications couldn't be loaded:", err));
   }, [isOwnProfile]);
 
   function handleLogout() {
     clearSession();
     navigate("/auth");
-  }
-
-  function goToDetail(pinId) {
-    navigate(`/places/${pinId}`);
   }
 
   async function handleCollabDecision(listId, requesterUsername, decision) {
@@ -123,157 +81,148 @@ export default function Profile() {
     }
   }
 
-  return (
-    <div className="profile-container">
-      <div className="profile-pic">
-        <CircleUserRound style={{ width: "7rem", height: "auto" }} />
-      </div>
+  const tabs = [
+    { key: "added", label: "Places", count: pins.length },
+    { key: "liked", label: "Liked", count: likedPins.length },
+    { key: "lists", label: "Lists", count: userLists.length },
+  ];
 
-      <div className="profile-info">
-        <div>
-          <p className="welcome-text">{username}</p>
+  return (
+    <main className="page">
+      <header className="profile-header">
+        <span className="avatar avatar-lg" aria-hidden="true">
+          {username?.[0]?.toUpperCase()}
+        </span>
+        <div className="profile-heading">
+          <h1>{username}</h1>
+          <p className="muted">
+            {pins.length} place{pins.length === 1 ? "" : "s"} · {userLists.length} list
+            {userLists.length === 1 ? "" : "s"}
+          </p>
         </div>
         {isOwnProfile && (
-          <button className="logout-button" onClick={handleLogout}>
-            Logout
+          <button className="btn btn-secondary" onClick={handleLogout}>
+            <LogOut size={16} aria-hidden="true" />
+            Log out
           </button>
         )}
-      </div>
-      <hr />
+      </header>
 
-      <div className="profile-tabs" role="tablist">
-        {[
-          ["added", "Adds"],
-          ["liked", "Likes"],
-          ["lists", "Lists"],
-        ].map(([key, label]) => (
+      {notifications.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">
+            <Bell size={18} aria-hidden="true" /> Notifications
+          </h2>
+          <ul className="notice-list">
+            {notifications.map((notif) => (
+              <li key={`${notif.listId}-${notif.status}`} className="notice">
+                <p>
+                  Your request to collaborate on{" "}
+                  <Link to={`/lists/${notif.listId}`} className="link">
+                    {notif.listName}
+                  </Link>{" "}
+                  was <strong>{notif.status}</strong>.
+                </p>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => handleMarkAsRead(notif.listId)}
+                >
+                  Dismiss
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {collabRequests.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">
+            <UserPlus size={18} aria-hidden="true" /> Collaboration requests
+          </h2>
+          <ul className="notice-list">
+            {collabRequests.map((req) => (
+              <li key={`${req.listId}-${req.username}`} className="notice">
+                <p>
+                  <strong>{req.username}</strong> wants to contribute to{" "}
+                  <Link to={`/lists/${req.listId}`} className="link">
+                    {req.listName}
+                  </Link>
+                </p>
+                <div className="btn-row">
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() =>
+                      handleCollabDecision(req.listId, req.username, "accepted")
+                    }
+                  >
+                    Accept
+                  </button>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={() =>
+                      handleCollabDecision(req.listId, req.username, "rejected")
+                    }
+                  >
+                    Decline
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <div className="segmented segmented-full" role="tablist">
+        {tabs.map(({ key, label, count }) => (
           <button
             key={key}
             role="tab"
             aria-selected={activeTab === key}
-            className={activeTab === key ? "tab active" : "tab"}
+            className={activeTab === key ? "active" : ""}
             onClick={() => setActiveTab(key)}
           >
-            {label}
+            {label} <span className="count">{count}</span>
           </button>
         ))}
       </div>
 
-      <div className="profile-content">
-        {notifications.length > 0 && (
-          <div className="profile-section notification-section">
-            <h2>Notifications</h2>
-            <ul className="profile-list">
-              {notifications.map((notif) => (
-                <li
-                  key={`${notif.listId}-${notif.status}`}
-                  className={`profile-list-item notif-item ${notif.status}`}
-                >
-                  <span>
-                    Your request to collaborate on
-                    <strong> {notif.listName} </strong>
-                    was <strong>{notif.status}</strong>.
-                  </span>
-                  <button
-                    className="ok-button"
-                    onClick={() => handleMarkAsRead(notif.listId)}
-                  >
-                    OK
-                  </button>
-                </li>
+      <section className="tab-panel">
+        {activeTab === "added" &&
+          (pins.length === 0 ? (
+            <EmptyState icon={MapPin} title="No places added yet" />
+          ) : (
+            <CardGrid>
+              {pins.map((pin) => (
+                <PlaceCard key={pin._id} pin={pin} />
               ))}
-            </ul>
-          </div>
-        )}
-        {collabRequests.length > 0 && (
-          <section className="profile-section">
-            <h2>Collab Requests</h2>
-            <ul className="profile-list">
-              {collabRequests.map((req) => (
-                <li
-                  key={`${req.listId}-${req.username}`}
-                  className="profile-list-item"
-                >
-                  <p>
-                    <strong>{req.username}</strong> wants to contribute to{" "}
-                    <strong>{req.listName}</strong>
-                  </p>
-                  <div className="edit-button-group">
-                    <button
-                      onClick={() =>
-                        handleCollabDecision(req.listId, req.username, "accepted")
-                      }
-                    >
-                      Accept
-                    </button>
-                    <button
-                      className="cancel-button"
-                      onClick={() =>
-                        handleCollabDecision(req.listId, req.username, "rejected")
-                      }
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </li>
+            </CardGrid>
+          ))}
+
+        {activeTab === "liked" &&
+          (likedPins.length === 0 ? (
+            <EmptyState icon={Heart} title="No liked places yet" />
+          ) : (
+            <CardGrid>
+              {likedPins.map((pin) => (
+                <PlaceCard key={pin._id} pin={pin} />
               ))}
-            </ul>
-          </section>
-        )}
-        {activeTab === "added" && (
-          <section className="profile-section">
-            <h2>Places added by {username}</h2>
-            <PinCards
-              pins={pins}
-              listRef={addedRef}
-              onOpen={goToDetail}
-              emptyText="No places added yet."
-            />
-          </section>
-        )}
+            </CardGrid>
+          ))}
 
-        {activeTab === "liked" && (
-          <section className="profile-section">
-            <h2>Liked Places</h2>
-            <PinCards
-              pins={likedPins}
-              listRef={likedRef}
-              onOpen={goToDetail}
-              emptyText="No liked places yet."
-            />
-          </section>
-        )}
-
-        {activeTab === "lists" && (
-          <section className="profile-section">
-            <h2>{isOwnProfile ? "Your Lists" : `${username}'s Lists`}</h2>
-            {userLists.length === 0 ? (
-              <p>No lists yet.</p>
-            ) : (
-              <ul className="profile-list" ref={listRef}>
-                {userLists.map((list) => (
-                  <li
-                    className="profile-list-item-list"
-                    key={list._id}
-                    onClick={() => navigate(`/lists/${list._id}`)}
-                  >
-                    <div className="profile-list-left">
-                      {list.name} ({list.pins.length} place
-                      {list.pins.length !== 1 ? "s" : ""})
-                      <p>{list.description}</p>
-                    </div>
-                    {list.coverImage && (
-                      <div className="profile-list-right">
-                        <img src={list.coverImage} alt={list.name} />
-                      </div>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        )}
-      </div>
-    </div>
+        {activeTab === "lists" &&
+          (userLists.length === 0 ? (
+            <EmptyState icon={List} title="No lists yet">
+              {isOwnProfile && "Open a place and add it to a new list."}
+            </EmptyState>
+          ) : (
+            <CardGrid>
+              {userLists.map((list) => (
+                <ListCard key={list._id} list={list} />
+              ))}
+            </CardGrid>
+          ))}
+      </section>
+    </main>
   );
 }

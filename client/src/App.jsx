@@ -6,6 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import Root from "./Root";
+import PageStatus from "./components/PageStatus";
 
 const Home = lazy(() => import("./pages/Home"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -22,7 +23,7 @@ function App() {
 
   return (
     <Router>
-      <Suspense fallback={<p className="page-status">Loading...</p>}>
+      <Suspense fallback={<PageStatus />}>
         <Routes>
           <Route path="/startup" element={<Navigate to="/" replace />} />
           <Route

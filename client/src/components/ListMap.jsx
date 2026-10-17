@@ -74,17 +74,15 @@ export default function ListMap({ pins }) {
   }, [visiblePins, map]);
 
   return (
-    <div>
-      <div ref={mapRef} className="map-container">
-        <CategoryFilter
-          selectedCategories={selectedCategories}
-          setSelectedCategories={setSelectedCategories}
-          selectedTags={selectedTags}
-          setSelectedTags={setSelectedTags}
-          showTags={showTags}
-          setShowTags={setShowTags}
-        />
-      </div>
+    <div ref={mapRef} className="map-embed map-embed-lg">
+      <CategoryFilter
+        selectedCategories={selectedCategories}
+        setSelectedCategories={setSelectedCategories}
+        selectedTags={selectedTags}
+        setSelectedTags={setSelectedTags}
+        showTags={showTags}
+        setShowTags={setShowTags}
+      />
     </div>
   );
 }

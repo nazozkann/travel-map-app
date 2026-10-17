@@ -1,25 +1,40 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  ListPlus,
+  MapPin,
+  Pencil,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import DetailMap from "../components/DetailMap";
 import NotFound from "./NotFound";
-import { Plus } from "lucide-react";
-import { FaArrowAltCircleLeft, FaArrowAltCircleRight } from "react-icons/fa";
-import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
+import Modal from "../components/Modal";
+import Comments from "../components/Comments";
+import PageStatus from "../components/PageStatus";
+import TagPicker from "../components/TagPicker";
+import { CategoryBadge } from "../components/Cards";
 import { api } from "../utils/api";
 import useAuth from "../hooks/useAuth";
+import useGoBack from "../hooks/useGoBack";
 import uploadImage from "../utils/uploadImage";
-import { categories, categoryLabel } from "../utils/categories";
+import { categories } from "../utils/categories";
 import { tags as allTags } from "../utils/tags";
-import formatDate from "../utils/formatDate";
 
 export default function PinDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
   const username = useAuth();
+  const goBack = useGoBack();
   const [pin, setPin] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -106,24 +121,24 @@ export default function PinDetail() {
       alert("Pin deleted!");
       navigate("/");
     } catch (err) {
-      console.error("❌ Silme hatası:", err);
+      console.error("Pin delete failed:", err);
       alert(err.message || "Error deleting pin.");
     }
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!requireLogin("You need to be logged in to comment")) return;
+  async function handleAddComment(text) {
+    if (!requireLogin("You need to be logged in to comment")) return false;
     try {
       const added = await api("/api/comments", {
         method: "POST",
         auth: true,
-        body: { pinId: id, text: newComment },
+        body: { pinId: id, text },
       });
       setComments((prev) => [added, ...prev]);
-      setNewComment("");
+      return true;
     } catch (err) {
       alert(err.message);
+      return false;
     }
   }
 
@@ -218,344 +233,305 @@ export default function PinDetail() {
       />
     );
   }
-  if (!pin) return <p className="page-status">Loading...</p>;
+  if (!pin) return <PageStatus />;
 
   const isOwner = username === pin.createdBy;
   const images = Array.isArray(pin.images) ? pin.images : [];
   const safeImageIndex = Math.min(currentImageIndex, images.length - 1);
 
+  const likedByMe = Boolean(username) && pin.likedBy?.includes(username);
+  const dislikedByMe = Boolean(username) && pin.dislikedBy?.includes(username);
+  const tagLabel = (key) => allTags.find((t) => t.key === key)?.label || key;
+
   return (
-    <div className="pin-detail-container">
-      <div className="title-edit">
-        <h1 className="pin-title">{pin.title}</h1>
-        {isOwner && (
-          <button className="edit-button" onClick={openEditor}>
-            Edit
+    <main className="page page-narrow">
+      <button type="button" className="btn btn-ghost back-btn" onClick={goBack}>
+        <ArrowLeft size={18} aria-hidden="true" />
+        Back
+      </button>
+
+      <header className="detail-header">
+        <CategoryBadge category={pin.category} />
+        <h1 className="detail-title">{pin.title}</h1>
+        <p className="detail-meta">
+          {pin.city && pin.city !== "Unknown" && (
+            <span>
+              <MapPin size={15} aria-hidden="true" />
+              {pin.city}
+            </span>
+          )}
+          <span>
+            <User size={15} aria-hidden="true" />
+            <Link to={`/profile/${encodeURIComponent(pin.createdBy)}`} className="link">
+              {pin.createdBy}
+            </Link>
+          </span>
+        </p>
+
+        <div className="detail-actions">
+          <button
+            className={`btn btn-secondary vote-btn ${likedByMe ? "voted" : ""}`}
+            onClick={() => handleVote("like")}
+            aria-label="Like"
+            aria-pressed={likedByMe}
+          >
+            <ThumbsUp size={17} aria-hidden="true" />
+            {pin.likes}
           </button>
-        )}
-      </div>
+          <button
+            className={`btn btn-secondary vote-btn ${dislikedByMe ? "voted" : ""}`}
+            onClick={() => handleVote("dislike")}
+            aria-label="Dislike"
+            aria-pressed={dislikedByMe}
+          >
+            <ThumbsDown size={17} aria-hidden="true" />
+            {pin.dislikes}
+          </button>
+          <span className="spacer" />
+          {isOwner && (
+            <button className="btn btn-secondary" onClick={openEditor}>
+              <Pencil size={16} aria-hidden="true" />
+              Edit
+            </button>
+          )}
+        </div>
+      </header>
 
       {pin.imageUrl && (
-        <div className="pin-image-wrapper">
+        <div className="hero-media">
           <img src={pin.imageUrl} alt={pin.title} />
         </div>
       )}
 
-      <div className="pin-meta">
-        <div className="tag-list">
-          {(pin.tags || []).map((tag) => (
-            <span key={tag} className={`tag tag-${tag}`}>
-              {tag}
+      {(pin.tags || []).length > 0 && (
+        <div className="chip-wrap">
+          {pin.tags.map((tag) => (
+            <span key={tag} className="chip chip-sm chip-static">
+              {tagLabel(tag)}
             </span>
           ))}
         </div>
-        <div className="up-town">
-          <p>
-            <strong>Category:</strong> {categoryLabel(pin.category)}
-          </p>
-          {pin.city && pin.city !== "Unknown" && (
-            <p>
-              <strong>City:</strong> {pin.city}
-            </p>
-          )}
-          <p
-            style={{ cursor: "pointer" }}
-            onClick={() =>
-              navigate(`/profile/${encodeURIComponent(pin.createdBy)}`)
-            }
-          >
-            <strong>By:</strong> {pin.createdBy}
-          </p>
-        </div>
-        <p>
-          <strong>Description:</strong> {pin.description}
-        </p>
-      </div>
-
-      <div className="pin-reactions">
-        <button
-          onClick={() => handleVote("like")}
-          aria-label="Like"
-          aria-pressed={pin.likedBy?.includes(username)}
-          className={pin.likedBy?.includes(username) ? "voted" : ""}
-        >
-          <IoIosThumbsUp style={{ width: "1.25rem", height: "auto" }} />
-        </button>{" "}
-        <span>{pin.likes}</span>
-        <button
-          onClick={() => handleVote("dislike")}
-          aria-label="Dislike"
-          aria-pressed={pin.dislikedBy?.includes(username)}
-          className={pin.dislikedBy?.includes(username) ? "voted" : ""}
-        >
-          <IoIosThumbsDown style={{ width: "1.25rem", height: "auto" }} />
-        </button>{" "}
-        <span>{pin.dislikes}</span>
-      </div>
-
-      {images.length > 0 && (
-        <div className="extra-images-slider">
-          {images.length > 1 && (
-            <button
-              className="slider-arrow left"
-              aria-label="Previous image"
-              onClick={() =>
-                setCurrentImageIndex((prev) =>
-                  prev <= 0 ? images.length - 1 : prev - 1
-                )
-              }
-            >
-              <FaArrowAltCircleLeft />
-            </button>
-          )}
-          <img
-            src={images[safeImageIndex]}
-            alt={`${pin.title} ${safeImageIndex + 1}`}
-            className="slider-image"
-          />
-          {images.length > 1 && (
-            <button
-              className="slider-arrow right"
-              aria-label="Next image"
-              onClick={() =>
-                setCurrentImageIndex((prev) =>
-                  prev >= images.length - 1 ? 0 : prev + 1
-                )
-              }
-            >
-              <FaArrowAltCircleRight />
-            </button>
-          )}
-        </div>
       )}
 
-      <DetailMap
-        lat={pin.latitude}
-        lng={pin.longitude}
-        category={pin.category}
-      />
+      {pin.description && <p className="detail-description">{pin.description}</p>}
 
-      <div className="pin-lists">
-        <div
-          className="pin-lists-header"
+      {images.length > 0 && (
+        <section className="section">
+          <h2 className="section-title">Photos</h2>
+          <div className="gallery">
+            <img
+              src={images[safeImageIndex]}
+              alt={`${pin.title} ${safeImageIndex + 1}`}
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  className="gallery-arrow left"
+                  aria-label="Previous image"
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev <= 0 ? images.length - 1 : prev - 1
+                    )
+                  }
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button
+                  className="gallery-arrow right"
+                  aria-label="Next image"
+                  onClick={() =>
+                    setCurrentImageIndex((prev) =>
+                      prev >= images.length - 1 ? 0 : prev + 1
+                    )
+                  }
+                >
+                  <ChevronRight size={20} />
+                </button>
+                <span className="gallery-count">
+                  {safeImageIndex + 1} / {images.length}
+                </span>
+              </>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section className="section">
+        <h2 className="section-title">Location</h2>
+        <DetailMap lat={pin.latitude} lng={pin.longitude} category={pin.category} />
+      </section>
+
+      <section className="section panel">
+        <button
+          type="button"
+          className="panel-toggle"
+          aria-expanded={showListFields}
           onClick={() => setShowListFields((prev) => !prev)}
         >
-          <h3>Add to List</h3>
-          <button
-            className="plus-button"
-            aria-label="Add to list"
-            aria-expanded={showListFields}
-          >
-            <Plus size={32} />
-          </button>
-        </div>
+          <ListPlus size={20} aria-hidden="true" />
+          <span>Add to a list</span>
+          {showListFields ? <X size={18} /> : <ChevronRight size={18} />}
+        </button>
 
         {showListFields && (
-          <div className="pin-lists-fields">
-            <select
-              value={selectedListId}
-              onChange={(e) => setSelectedListId(e.target.value)}
-            >
-              <option value="">Select a list</option>
-              {lists.map((list) => (
-                <option key={list._id} value={list._id}>
-                  {list.name}
-                </option>
-              ))}
-            </select>
-
-            <p className="create-new-list">Create new list:</p>
-            <input
-              type="text"
-              placeholder="New list name"
-              maxLength={100}
-              value={newListName}
-              disabled={Boolean(selectedListId)}
-              onChange={(e) => setNewListName(e.target.value)}
-            />
-            <button onClick={handleAddToList}>Add</button>
+          <div className="list-picker">
+            <label className="field">
+              <span className="field-label">Your lists</span>
+              <select
+                className="input"
+                value={selectedListId}
+                onChange={(e) => setSelectedListId(e.target.value)}
+              >
+                <option value="">Select a list</option>
+                {lists.map((list) => (
+                  <option key={list._id} value={list._id}>
+                    {list.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span className="field-label">Or create a new one</span>
+              <input
+                className="input"
+                type="text"
+                placeholder="New list name"
+                maxLength={100}
+                value={newListName}
+                disabled={Boolean(selectedListId)}
+                onChange={(e) => setNewListName(e.target.value)}
+              />
+            </label>
+            <button className="btn btn-primary" onClick={handleAddToList}>
+              Add to list
+            </button>
           </div>
         )}
-      </div>
+      </section>
+
+      <Comments
+        comments={comments}
+        username={username}
+        onAdd={handleAddComment}
+        onDelete={handleDelete}
+        placeholder="Share your thoughts..."
+      />
+
       {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <form className="edit-form-vertical" onSubmit={handleSaveEdit}>
-              <label>
-                Title
-                <input
-                  type="text"
-                  required
-                  maxLength={120}
-                  value={editForm.title}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, title: e.target.value })
-                  }
-                />
-              </label>
+        <Modal title="Edit place" onClose={() => setEditing(false)}>
+          <form className="form" onSubmit={handleSaveEdit}>
+            <label className="field">
+              <span className="field-label">Title</span>
+              <input
+                className="input"
+                type="text"
+                required
+                maxLength={120}
+                value={editForm.title}
+                onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+              />
+            </label>
 
-              <label>
-                Category
-                <select
-                  required
-                  value={editForm.category}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, category: e.target.value })
-                  }
-                >
-                  {categories.map((c) => (
-                    <option key={c.key} value={c.key}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Tags
-                <select
-                  multiple
-                  value={editForm.tags}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      tags: Array.from(
-                        e.target.selectedOptions,
-                        (opt) => opt.value
-                      ),
-                    })
-                  }
-                >
-                  {allTags.map((t) => (
-                    <option key={t.key} value={t.key}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <label className="field">
+              <span className="field-label">Category</span>
+              <select
+                className="input"
+                required
+                value={editForm.category}
+                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+              >
+                {categories.map((c) => (
+                  <option key={c.key} value={c.key}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-              <label>
-                Description
-                <textarea
-                  rows="4"
-                  maxLength={5000}
-                  value={editForm.description}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, description: e.target.value })
-                  }
-                />
-              </label>
+            <div className="field">
+              <span className="field-label">Tags</span>
+              <TagPicker
+                value={editForm.tags}
+                onChange={(tags) => setEditForm({ ...editForm, tags })}
+              />
+            </div>
 
-              <label>
-                Cover Image
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setCoverImage(e.target.files[0] || null)}
-                />
-              </label>
+            <label className="field">
+              <span className="field-label">Description</span>
+              <textarea
+                className="input"
+                rows="4"
+                maxLength={5000}
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, description: e.target.value })
+                }
+              />
+            </label>
 
-              <label>
-                Extra Images
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => setExtraImages([...e.target.files])}
-                />
-              </label>
+            <label className="field">
+              <span className="field-label">Cover image</span>
+              <input
+                className="input file-input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setCoverImage(e.target.files[0] || null)}
+              />
+            </label>
 
-              {images.length > 0 && (
-                <div className="edit-image-list">
+            <label className="field">
+              <span className="field-label">Add photos</span>
+              <input
+                className="input file-input"
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={(e) => setExtraImages([...e.target.files])}
+              />
+            </label>
+
+            {images.length > 0 && (
+              <div className="field">
+                <span className="field-label">Photos · tap to remove</span>
+                <div className="thumb-list">
                   {images.map((url) => (
                     <button
                       type="button"
                       key={url}
-                      className="edit-image-thumb"
+                      className="thumb"
                       title="Remove image"
                       onClick={() => handleRemoveImage(url)}
                     >
                       <img src={url} alt="" />
-                      <span aria-hidden="true">×</span>
+                      <span aria-hidden="true">
+                        <X size={18} />
+                      </span>
                     </button>
                   ))}
                 </div>
-              )}
+              </div>
+            )}
 
+            <div className="form-actions">
+              <button type="button" className="btn btn-danger-ghost" onClick={handleDeletePin}>
+                <Trash2 size={16} aria-hidden="true" />
+                Delete
+              </button>
+              <span className="spacer" />
               <button
                 type="button"
-                className="delete-button"
-                onClick={handleDeletePin}
+                className="btn btn-secondary"
+                onClick={() => setEditing(false)}
               >
-                Delete Pin
+                Cancel
               </button>
-
-              <div className="edit-button-group">
-                <button type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Save"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditing(false)}
-                  className="cancel-button"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <div className="list-comments-section">
-        <h2>Comments</h2>
-        {username ? (
-          <form className="list-comment-form" onSubmit={handleSubmit}>
-            <textarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Share your thoughts..."
-              maxLength={1000}
-              required
-            ></textarea>
-            <button type="submit">Add Comment</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
           </form>
-        ) : (
-          <p>
-            <Link to="/auth">Log in</Link>{" "}
-            to leave a comment.
-          </p>
-        )}
-
-        <ul className="list-comment-list">
-          {comments.map((comment) => (
-            <li key={comment._id} className="list-comment-item">
-              <div className="comment-header">
-                <strong
-                  style={{ cursor: "pointer" }}
-                  onClick={() =>
-                    navigate(`/profile/${encodeURIComponent(comment.username)}`)
-                  }
-                >
-                  {comment.username}
-                </strong>
-                <div className="comment-rigth-side">
-                  <span>{formatDate(comment.createdAt)}</span>
-                  {username === comment.username && (
-                    <button
-                      onClick={() => handleDelete(comment._id)}
-                      className="comment-delete-button"
-                      aria-label="Delete comment"
-                    >
-                      X
-                    </button>
-                  )}
-                </div>
-              </div>
-              <p>{comment.text}</p>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
+        </Modal>
+      )}
+    </main>
   );
 }

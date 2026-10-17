@@ -4,7 +4,7 @@ import Navbar from "./components/Navbar";
 import Startup from "./pages/Startup";
 import { API_URL } from "./utils/api";
 
-const MIN_SPLASH_MS = 1000;
+const MIN_SPLASH_MS = 1200;
 const RETRY_MS = 3000;
 
 export default function Root({ setLocation, setAppReady, appReady }) {

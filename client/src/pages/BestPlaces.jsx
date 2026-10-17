@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import "../styles/Main.css";
-import { IoIosThumbsDown, IoIosThumbsUp } from "react-icons/io";
-import { categories, categoryLabel } from "../utils/categories";
+import { Search, SearchX } from "lucide-react";
+import { categories } from "../utils/categories";
 import { api } from "../utils/api";
+import { CardGrid, EmptyState, ListCard, PlaceCard } from "../components/Cards";
+import PageStatus from "../components/PageStatus";
 
 // Lower bound of the Wilson score interval: ranks by approval while
 // accounting for how many votes a place has.
@@ -19,9 +19,6 @@ function wilsonScore(likes = 0, dislikes = 0) {
     (1 + (z * z) / n)
   );
 }
-
-const truncate = (text = "", max = 80) =>
-  text.length > max ? `${text.slice(0, max)}...` : text;
 
 export default function BestPlaces() {
   const [pins, setPins] = useState([]);
@@ -96,125 +93,87 @@ export default function BestPlaces() {
     );
   }
 
-  if (loading) return <p className="page-status">Loading...</p>;
-  if (error) return <p className="page-status">{error}</p>;
+  if (loading) return <PageStatus />;
+  if (error) return <PageStatus>{error}</PageStatus>;
 
   const results = view === "places" ? filteredPins : filteredLists;
+  const allSelected = selectedCategories.length === categories.length;
 
   return (
-    <div className="places-container">
-      <div className="places-tabs">
-        <button
-          className={`tab ${view === "places" ? "active" : ""}`}
-          onClick={() => setView("places")}
-        >
-          Places
-        </button>
-        <button
-          className={`tab ${view === "lists" ? "active" : ""}`}
-          onClick={() => setView("lists")}
-        >
-          Lists
-        </button>
-        <div className="search-bar-container">
+    <main className="page">
+      <header className="page-header">
+        <h1>Discover</h1>
+        <p className="muted">Top-rated places and lists from the community.</p>
+      </header>
+
+      <div className="toolbar">
+        <div className="segmented" role="tablist">
+          {[
+            ["places", "Places"],
+            ["lists", "Lists"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              role="tab"
+              aria-selected={view === key}
+              className={view === key ? "active" : ""}
+              onClick={() => setView(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <label className="search-field">
+          <Search size={18} aria-hidden="true" />
           <input
-            type="text"
-            placeholder="Search by city..."
-            aria-label="Search by city"
+            type="search"
+            className="input"
+            placeholder="Filter by city"
+            aria-label="Filter by city"
             value={searchCity}
             onChange={(e) => setSearchCity(e.target.value)}
-            className="search-input"
           />
-        </div>
+        </label>
       </div>
 
-      <div className="category-filter-bar">
-        {categories.map((cat) => (
-          <button
-            key={cat.key}
-            title={cat.label}
-            aria-label={cat.label}
-            aria-pressed={selectedCategories.includes(cat.key)}
-            className={`category-btn-${cat.key} category-btn-small ${
-              selectedCategories.includes(cat.key) ? "active" : ""
-            }`}
-            onClick={() => toggleCategory(cat.key)}
-          >
-            <img src={cat.icon} alt="" className="category-icon" />
-          </button>
-        ))}
-
+      <div className="chip-row chip-row-scroll">
         <button
-          id="category-btn-small-delete"
-          className={`category-btn-small ${
-            selectedCategories.length === categories.length ? "active" : ""
-          }`}
+          type="button"
+          aria-pressed={allSelected}
+          className={`chip ${allSelected ? "active" : ""}`}
           onClick={toggleAllCategories}
-          title={
-            selectedCategories.length === categories.length
-              ? "Clear categories"
-              : "Select all categories"
-          }
-          style={{ fontWeight: "bold", fontSize: "1rem" }}
         >
-          {selectedCategories.length === categories.length ? "X" : "+"}
+          All
         </button>
+        {categories.map(({ key, label, Icon }) => {
+          const active = selectedCategories.includes(key);
+          return (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={active}
+              className={`chip chip-cat ${active ? "active" : ""}`}
+              style={{ "--c": `var(--cat-${key})` }}
+              onClick={() => toggleCategory(key)}
+            >
+              <Icon size={16} aria-hidden="true" />
+              {label}
+            </button>
+          );
+        })}
       </div>
 
-      {results.length === 0 && (
-        <p className="page-status">No {view} match your filters.</p>
+      {results.length === 0 ? (
+        <EmptyState icon={SearchX} title={`No ${view} match your filters`}>
+          Try another city or turn on more categories.
+        </EmptyState>
+      ) : (
+        <CardGrid>
+          {view === "places"
+            ? filteredPins.map((pin) => <PlaceCard key={pin._id} pin={pin} />)
+            : filteredLists.map((list) => <ListCard key={list._id} list={list} />)}
+        </CardGrid>
       )}
-
-      {view === "places" && (
-        <div className="places-list">
-          {filteredPins.map((pin) => (
-            <Link
-              to={`/places/${pin._id}`}
-              key={pin._id}
-              className="places-card"
-            >
-              {pin.imageUrl && (
-                <div className="places-card-img">
-                  <img src={pin.imageUrl} alt={pin.title} />
-                </div>
-              )}
-              <h3>{pin.title}</h3>
-              <p>
-                <strong>Category:</strong> {categoryLabel(pin.category)}
-              </p>
-              <p>{truncate(pin.description)}</p>
-              <p>
-                <IoIosThumbsUp style={{ width: "1.25rem", height: "auto" }} />{" "}
-                {pin.likes} &nbsp;{" "}
-                <IoIosThumbsDown style={{ width: "1.25rem", height: "auto" }} />{" "}
-                {pin.dislikes}
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
-      {view === "lists" && (
-        <div className="lists-list">
-          {filteredLists.map((list) => (
-            <Link
-              to={`/lists/${list._id}`}
-              key={list._id}
-              className="lists-card"
-            >
-              {list.coverImage && (
-                <div className="places-card-img">
-                  <img src={list.coverImage} alt={list.name} />
-                </div>
-              )}
-              <div className="lists-card-header">
-                <h3>{list.name}</h3>
-              </div>
-              <p className="list-description">{list.description}</p>
-              <p>{list.pins?.filter(Boolean).length || 0} places</p>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
+    </main>
   );
 }

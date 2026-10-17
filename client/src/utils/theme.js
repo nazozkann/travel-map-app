@@ -5,20 +5,44 @@ const DARK_MAP_STYLE = `https://api.maptiler.com/maps/0196bac3-e637-7c87-b191-32
 
 export const THEME_EVENT = "theme-change";
 
+function readSavedTheme() {
+  try {
+    return localStorage.getItem("theme");
+  } catch {
+    return null;
+  }
+}
+
+// The saved choice wins; without one, follow the OS setting.
 export function isDarkTheme() {
-  return localStorage.getItem("theme") === "dark";
+  const saved = readSavedTheme();
+  if (saved) return saved === "dark";
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
 }
 
 export function getMapStyle() {
   return isDarkTheme() ? DARK_MAP_STYLE : LIGHT_MAP_STYLE;
 }
 
+function syncThemeColor(isDark) {
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", isDark ? "#0b0b0e" : "#ffffff");
+}
+
 export function applySavedTheme() {
-  document.body.classList.toggle("dark", isDarkTheme());
+  const isDark = isDarkTheme();
+  document.body.classList.toggle("dark", isDark);
+  syncThemeColor(isDark);
 }
 
 export function toggleTheme() {
   const isDark = document.body.classList.toggle("dark");
-  localStorage.setItem("theme", isDark ? "dark" : "light");
+  try {
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  } catch {
+    // storage unavailable; the theme still applies for this visit
+  }
+  syncThemeColor(isDark);
   window.dispatchEvent(new Event(THEME_EVENT));
 }

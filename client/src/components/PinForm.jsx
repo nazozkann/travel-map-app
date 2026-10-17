@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { categories } from "../utils/categories";
-import { tags } from "../utils/tags";
 import { api } from "../utils/api";
 import uploadImage from "../utils/uploadImage";
-import "../styles/Main.css";
+import TagPicker from "./TagPicker";
 
 async function getCityFromCoords(lat, lon) {
   const key = import.meta.env.VITE_GEOAPIFY_API_KEY;
@@ -21,7 +20,7 @@ async function getCityFromCoords(lat, lon) {
   }
 }
 
-export default function PinForm({ lat, lng, onSuccess }) {
+export default function PinForm({ lat, lng, onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
     title: "",
     category: "",
@@ -38,11 +37,6 @@ export default function PinForm({ lat, lng, onSuccess }) {
       ...prev,
       [name]: name === "image" ? files[0] || null : value,
     }));
-  }
-
-  function handleTagsChange(e) {
-    const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
-    setFormData((prev) => ({ ...prev, tags: selected }));
   }
 
   async function handleSubmit(e) {
@@ -72,69 +66,96 @@ export default function PinForm({ lat, lng, onSuccess }) {
       });
       onSuccess(newPin);
     } catch (err) {
-      console.error("⛔ Pin kaydedilemedi:", err);
+      console.error("Pin couldn't be saved:", err);
       setError(err.message || "Couldn't save the pin");
       setSubmitting(false);
     }
   }
 
   return (
-    <form id="pin-form" className="pin-form" onSubmit={handleSubmit}>
-      <input
-        type="text"
-        name="title"
-        placeholder="title"
-        maxLength={120}
-        required
-        onChange={handleChange}
-      />
-      <select
-        name="category"
-        id="pin-category"
-        required
-        value={formData.category}
-        onChange={handleChange}
-      >
-        <option value="">Select category</option>
-        {categories.map((c) => (
-          <option key={c.key} value={c.key}>
-            {c.label}
-          </option>
-        ))}
-      </select>
-      <label>
-        Tags
-        <select
-          name="tags"
-          multiple
-          value={formData.tags}
-          onChange={handleTagsChange}
-        >
-          {tags.map((t) => (
-            <option key={t.key} value={t.key}>
-              {t.label}
-            </option>
-          ))}
-        </select>
+    <form className="form" onSubmit={handleSubmit}>
+      <label className="field">
+        <span className="field-label">Title</span>
+        <input
+          className="input"
+          type="text"
+          name="title"
+          placeholder="e.g. Galata Tower"
+          maxLength={120}
+          required
+          value={formData.title}
+          onChange={handleChange}
+        />
       </label>
-      <textarea
-        name="description"
-        placeholder="description"
-        maxLength={5000}
-        required
-        onChange={handleChange}
-      ></textarea>
-      <input
-        className="file-input"
-        type="file"
-        name="image"
-        accept="image/*"
-        onChange={handleChange}
-      />
+
+      <div className="field">
+        <span className="field-label">Category</span>
+        <div className="chip-wrap">
+          {categories.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={formData.category === key}
+              className={`chip chip-sm chip-cat ${formData.category === key ? "active" : ""}`}
+              style={{ "--c": `var(--cat-${key})` }}
+              onClick={() => setFormData((prev) => ({ ...prev, category: key }))}
+            >
+              <Icon size={14} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="field">
+        <span className="field-label">Tags</span>
+        <TagPicker
+          value={formData.tags}
+          onChange={(tags) => setFormData((prev) => ({ ...prev, tags }))}
+        />
+      </div>
+
+      <label className="field">
+        <span className="field-label">Description</span>
+        <textarea
+          className="input"
+          name="description"
+          rows={3}
+          placeholder="What makes this place worth a visit?"
+          maxLength={5000}
+          required
+          value={formData.description}
+          onChange={handleChange}
+        />
+      </label>
+
+      <label className="field">
+        <span className="field-label">Photo (optional)</span>
+        <input
+          className="input file-input"
+          type="file"
+          name="image"
+          accept="image/*"
+          onChange={handleChange}
+        />
+      </label>
+
       {error && <p className="error-text">{error}</p>}
-      <button id="form-submit" type="submit" disabled={submitting}>
-        {submitting ? "Saving..." : "Submit"}
-      </button>
+
+      <div className="form-actions">
+        {onCancel && (
+          <button type="button" className="btn btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+        )}
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={submitting || !formData.category}
+        >
+          {submitting ? "Saving..." : "Add place"}
+        </button>
+      </div>
     </form>
   );
 }

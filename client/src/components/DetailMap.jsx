@@ -16,15 +16,5 @@ export default function DetailMap({ lat, lng, category }) {
     return () => marker.remove();
   }, [map, lat, lng, category]);
 
-  return (
-    <div
-      ref={mapRef}
-      style={{
-        width: "100%",
-        height: "300px",
-        borderRadius: "12px",
-        marginTop: "1rem",
-      }}
-    />
-  );
+  return <div ref={mapRef} className="map-embed" />;
 }

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import * as maplibregl from "maplibre-gl";
-import { createRoot } from "react-dom/client";
+import { Plus, X } from "lucide-react";
 import PinForm from "./PinForm";
 import CategoryFilter from "./CategoryFilter";
+import Modal from "./Modal";
 import { categories } from "../utils/categories";
 import { tags } from "../utils/tags";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -37,6 +38,7 @@ export default function MapView({ selectedLocation }) {
   const searchMarkerRef = useRef(null);
   const isAddingRef = useRef(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [draft, setDraft] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedCategories, setSelectedCategories] = useState(
     () =>
@@ -104,49 +106,25 @@ export default function MapView({ selectedLocation }) {
     filteredPins.forEach((pin) => markers.add(pin));
   }, [filteredPins, map]);
 
+  // In add mode, a map click drops a draft marker and opens the form for that spot.
   useEffect(() => {
     if (!map || !isAdding) return;
-
-    let popup = null;
-
-    const closeForm = () => {
-      popup?.remove();
-    };
-
-    const handleMapClick = ({ lngLat }) => {
-      closeForm();
-      const { lng, lat } = lngLat;
-
-      const container = document.createElement("div");
-      const formRoot = createRoot(container);
-      const formPopup = new maplibregl.Popup({ offset: 25, maxWidth: "320px" })
-        .setDOMContent(container)
-        .setLngLat([lng, lat])
-        .addTo(map);
-      formPopup.on("close", () => {
-        setTimeout(() => formRoot.unmount());
-      });
-      popup = formPopup;
-
-      formRoot.render(
-        <PinForm
-          lat={lat}
-          lng={lng}
-          onSuccess={(newPin) => {
-            setAllPins((prev) => [...prev, newPin]);
-            formPopup.remove();
-            setIsAdding(false);
-          }}
-        />
-      );
-    };
-
+    const handleMapClick = ({ lngLat }) => setDraft({ lng: lngLat.lng, lat: lngLat.lat });
     map.on("click", handleMapClick);
-    return () => {
-      map.off("click", handleMapClick);
-      closeForm();
-    };
+    return () => map.off("click", handleMapClick);
   }, [map, isAdding]);
+
+  useEffect(() => {
+    if (!map || !draft) return;
+    const marker = new maplibregl.Marker({ color: "#2563eb" })
+      .setLngLat([draft.lng, draft.lat])
+      .addTo(map);
+    return () => marker.remove();
+  }, [map, draft]);
+
+  useEffect(() => {
+    if (!isAdding) setDraft(null);
+  }, [isAdding]);
 
   function handleSetIsAdding(updater) {
     const next = typeof updater === "function" ? updater(isAdding) : updater;
@@ -210,13 +188,40 @@ export default function MapView({ selectedLocation }) {
       <CategoryFilter
         selectedCategories={selectedCategories}
         setSelectedCategories={setSelectedCategories}
-        isAdding={isAdding}
-        setIsAdding={handleSetIsAdding}
         setSelectedTags={setSelectedTags}
         selectedTags={selectedTags}
         showTags={showTags}
         setShowTags={setShowTags}
       />
+
+      {isAdding && !draft && (
+        <div className="map-hint" role="status">
+          Tap anywhere on the map to drop a pin
+        </div>
+      )}
+
+      <button
+        type="button"
+        className={`fab ${isAdding ? "fab-cancel" : ""}`}
+        onClick={() => handleSetIsAdding((prev) => !prev)}
+      >
+        {isAdding ? <X size={20} /> : <Plus size={20} />}
+        {isAdding ? "Cancel" : "Add place"}
+      </button>
+
+      {draft && (
+        <Modal title="Add a place" onClose={() => setDraft(null)}>
+          <PinForm
+            lat={draft.lat}
+            lng={draft.lng}
+            onCancel={() => setDraft(null)}
+            onSuccess={(newPin) => {
+              setAllPins((prev) => [...prev, newPin]);
+              setIsAdding(false);
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

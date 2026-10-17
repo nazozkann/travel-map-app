@@ -1,34 +1,42 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { Compass, LogIn, Map as MapIcon, MapPin, Menu, Moon, Sun, User, X } from "lucide-react";
 import "../styles/Navbar.css";
 import SearchBar from "./SearchBar";
-import { CgDarkMode } from "react-icons/cg";
 import useAuth from "../hooks/useAuth";
 import { api } from "../utils/api";
-import { toggleTheme } from "../utils/theme";
+import { isDarkTheme, toggleTheme, THEME_EVENT } from "../utils/theme";
 
 export default function Navbar({ setLocation }) {
   const location = useLocation();
   const username = useAuth();
   const [hasNotifications, setHasNotifications] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
+  const [dark, setDark] = useState(isDarkTheme);
   const menuRef = useRef();
-  const hamburgerRef = useRef();
+  const isHome = location.pathname === "/";
 
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target) &&
-        !hamburgerRef.current?.contains(e.target)
-      ) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    const sync = () => setDark(document.body.classList.contains("dark"));
+    window.addEventListener(THEME_EVENT, sync);
+    return () => window.removeEventListener(THEME_EVENT, sync);
   }, []);
+
+  useEffect(() => setMenuOpen(false), [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e) => {
+      if (!menuRef.current?.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!username) {
@@ -51,59 +59,84 @@ export default function Navbar({ setLocation }) {
     };
   }, [username, location.pathname]);
 
+  const links = [
+    { to: "/", label: "Map", Icon: MapIcon, end: true },
+    { to: "/places", label: "Discover", Icon: Compass },
+    username
+      ? {
+          to: `/profile/${encodeURIComponent(username)}`,
+          label: "Profile",
+          Icon: User,
+          dot: hasNotifications,
+        }
+      : { to: "/auth", label: "Log in", Icon: LogIn },
+  ];
+
+  const themeButton = (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      className="icon-btn"
+      aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      title={dark ? "Light mode" : "Dark mode"}
+    >
+      {dark ? <Sun size={20} /> : <Moon size={20} />}
+    </button>
+  );
+
   return (
-    <nav className="nav-style">
-      <Link to="/" className="nav-logo-link">
-        Explora
+    <header className={`nav ${isHome ? "nav-home" : ""}`}>
+      <Link to="/" className="nav-logo" aria-label="Explora home">
+        <span className="logo-mark">
+          <MapPin size={18} strokeWidth={2.5} />
+        </span>
+        <span className="nav-logo-text">Explora</span>
       </Link>
-      {location.pathname === "/" && (
-        <SearchBar onSelectLocation={setLocation} />
+
+      {isHome && (
+        <div className="nav-search">
+          <SearchBar onSelectLocation={setLocation} />
+        </div>
       )}
-      <button
-        ref={hamburgerRef}
-        className="hamburger-btn"
-        aria-label="Toggle menu"
-        aria-expanded={menuOpen}
-        onClick={() => setMenuOpen((prev) => !prev)}
-      >
-        ☰
-      </button>
 
-      <div className={`nav-rigth ${menuOpen ? "open" : ""}`} ref={menuRef}>
-        <Link to="/places" onClick={() => setMenuOpen(false)}>
-          Selected
-        </Link>
+      <nav className="nav-links" aria-label="Main">
+        {links.map(({ to, label, end, dot }) => (
+          <NavLink key={to} to={to} end={end} className="nav-link">
+            {label}
+            {dot && <span className="notification-dot" aria-label="New notifications" />}
+          </NavLink>
+        ))}
+        {themeButton}
+      </nav>
 
-        {username ? (
-          <div className="nav-profile-wrapper">
-            <Link
-              to={`/profile/${encodeURIComponent(username)}`}
-              onClick={() => setMenuOpen(false)}
-            >
-              Profile
-            </Link>
-            {hasNotifications && (
-              <span className="notification-dot" aria-label="New notifications" />
-            )}
-          </div>
-        ) : (
-          <Link to="/auth" onClick={() => setMenuOpen(false)}>
-            Login
-          </Link>
-        )}
-
+      <div className="nav-mobile" ref={menuRef}>
         <button
-          onClick={() => {
-            toggleTheme();
-            setMenuOpen(false);
-          }}
-          className="theme-toggle-btn"
-          aria-label="Toggle dark mode"
-          title="Toggle dark mode"
+          type="button"
+          className="icon-btn"
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((prev) => !prev)}
         >
-          <CgDarkMode />
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+          {hasNotifications && !menuOpen && <span className="notification-dot" />}
         </button>
+
+        {menuOpen && (
+          <div className="nav-menu">
+            {links.map(({ to, label, Icon, end, dot }) => (
+              <NavLink key={to} to={to} end={end} className="nav-menu-item">
+                <Icon size={18} aria-hidden="true" />
+                {label}
+                {dot && <span className="notification-dot static" />}
+              </NavLink>
+            ))}
+            <button type="button" className="nav-menu-item" onClick={toggleTheme}>
+              {dark ? <Sun size={18} /> : <Moon size={18} />}
+              {dark ? "Light mode" : "Dark mode"}
+            </button>
+          </div>
+        )}
       </div>
-    </nav>
+    </header>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { MapPin } from "lucide-react";
 import { api } from "../utils/api";
 import { setSession } from "../utils/auth";
 
@@ -29,33 +30,49 @@ export default function Auth() {
   }
 
   return (
-    <div className="auth-container">
-      <h2>Sign In</h2>
-      <form className="auth-form" onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={submitting}>
-          {submitting ? "Logging in..." : "Login"}
-        </button>
-        {error && <p className="error-text">{error}</p>}
-      </form>
-      <p className="auth-toggle-text">
-        Don’t have an account? <Link to="/signup">Sign up here</Link>
-      </p>
-    </div>
+    <main className="auth-page">
+      <div className="auth-card">
+        <span className="logo-mark logo-mark-lg">
+          <MapPin size={26} strokeWidth={2.5} />
+        </span>
+        <h1>Welcome back</h1>
+        <p className="muted">Log in to save, rate and share places.</p>
+
+        <form className="form" onSubmit={handleLogin}>
+          <label className="field">
+            <span className="field-label">Email</span>
+            <input
+              className="input"
+              type="email"
+              placeholder="you@example.com"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            <span className="field-label">Password</span>
+            <input
+              className="input"
+              type="password"
+              placeholder="Your password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </label>
+          {error && <p className="error-text">{error}</p>}
+          <button type="submit" className="btn btn-primary btn-block" disabled={submitting}>
+            {submitting ? "Logging in..." : "Log in"}
+          </button>
+        </form>
+
+        <p className="auth-switch">
+          Don’t have an account? <Link to="/signup" className="link">Sign up</Link>
+        </p>
+      </div>
+    </main>
   );
 }

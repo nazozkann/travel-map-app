@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import MapView from "../components/MapView";
-import "../styles/Main.css";
 
 export default function Home({ location }) {
   // The map fills the viewport; stop the page itself from scrolling while it's shown.
@@ -12,11 +11,5 @@ export default function Home({ location }) {
     };
   }, []);
 
-  return (
-    <div className="home-page">
-      <div className="home-container">
-        <MapView selectedLocation={location} />
-      </div>
-    </div>
-  );
+  return <MapView selectedLocation={location} />;
 }
